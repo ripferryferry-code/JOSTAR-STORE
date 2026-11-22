@@ -1,0 +1,3682 @@
+-- ============================================================
+-- 🛡️ HYPHON EMULATOR BYPASS + ANTI-KICK (GCOR)
+-- ============================================================
+local filtergc = filtergc
+if not filtergc then
+    filtergc = function(ftype, filters, returnSingle)
+        local results = {}
+        for _, obj in pairs(getgc(true)) do
+            if type(obj) == "function" then
+                local ok, info = pcall(debug.getinfo, obj)
+                if ok and info then
+                    local match = true
+                    if filters.StartLine and info.linedefined ~= filters.StartLine then match = false end
+                    if filters.Source and info.source ~= filters.Source then match = false end
+                    if match then
+                        if returnSingle then return obj end; table.insert(results, obj)
+                    end
+                end
+            end
+        end
+        if returnSingle then return nil end; return results
+    end
+end
+
+local getnilinstances = getnilinstances
+if not getnilinstances then getnilinstances = function() return {} end end
+
+local bit32 = bit32
+if not bit32 then bit32 = {} end
+if not bit32.bxor then
+    bit32.bxor = function(a, b)
+        local result, bit = 0, 1
+        while a > 0 or b > 0 do
+            if (a % 2) ~= (b % 2) then result = result + bit end
+            a, b, bit = math.floor(a / 2), math.floor(b / 2), bit * 2
+        end
+        return result
+    end
+end
+
+local emOk, emErr = pcall(function()
+    local gv = getgenv()
+    local function tryFind(name, ln)
+        local fn = filtergc("function", { StartLine = ln }, true)
+        if type(fn) ~= "function" then fn = (type(fn) == "table" and #fn > 0 and fn[1]) or nil end
+        if not fn then
+            local all = filtergc("function", { StartLine = ln })
+            if type(all) == "table" and #all > 0 then fn = all[1] end
+        end
+        if fn then gv[name] = fn end; return fn
+    end
+    gv.Hyphon_2102 = tryFind("Hyphon_2102", 2102)
+    gv.Hyphon_2247 = tryFind("Hyphon_2247", 2247)
+    gv.Hyphon_2846 = tryFind("Hyphon_2846", 2846)
+    gv.Hyphon_fake_dec = tryFind("Hyphon_fake_dec", 1097)
+    if gv.Hyphon_2102 then
+        gv.Hyphon_Encode = debug.getupvalue(gv.Hyphon_2102, 1)
+        gv.Hyphon_Decode = debug.getupvalue(gv.Hyphon_2102, 21)
+    end
+    gv.Hyphon_Script = nil
+    pcall(function()
+        for _, o in pairs(getnilinstances()) do
+            if o:IsA("Script") and o.Name:len() == 32 then gv.Hyphon_Script = o; break end
+        end
+    end)
+    if gv.Hyphon_2102 and gv.Hyphon_2247 and gv.Hyphon_2846 and gv.Hyphon_fake_dec then
+        pcall(function()
+            local HC = cloneref(game:GetService("MemoryStoreService")):FindFirstChild("Hyphon_Check")
+            local RF = debug.getupvalue(gv.Hyphon_2247, 6)
+            if HC then
+                local o
+                o = hookfunction(HC.FireServer, function(s, ...) return o(s, ...) end)
+            end
+            if RF then
+                local o
+                o = hookfunction(RF.InvokeServer, function(s, ...)
+                    local a = table.pack(...)
+                    if type(a[1]) == "table" and a[1][1] then
+                        gv.T1 = a[1][1]; gv.T2 = a[1][2]; gv.T3 = a[1][6]; gv.T4 = a[1][11]
+                    end
+                    return o(s, ...)
+                end)
+            end
+        end)
+        if bit32 and bit32.bxor and gv.Hyphon_Script and checkcaller and getcallingscript then
+            pcall(function()
+                local o
+                o = hookfunction(bit32.bxor, function(a, b)
+                    if not checkcaller() and getcallingscript() == gv.Hyphon_Script then return task.wait(9e9) end
+                    return o(a, b)
+                end)
+            end)
+        end
+    end
+    pcall(function()
+        for _, Object in pairs(getgc(true)) do
+            if typeof(Object) == "table" and typeof(rawget(Object, "Homeless")) == "table" then
+                if rawget(Object.Homeless, "MaxDistance") then Object.Homeless.MaxDistance = 9e9 end
+            end
+        end
+    end)
+end)
+getgenv().HyphonReady = true
+getgenv().Emulator_Set = true
+
+-- ===== KICK OVERRIDE =====
+pcall(function()
+    local player = game:GetService("Players").LocalPlayer
+    if player then
+        player.Kick = function() return end
+    end
+    game:GetService("Players").Kick = function() return end
+end)
+
+-- ===== KICK POPUP DESTROYER =====
+task.spawn(function()
+    while getgenv().GHOST_ULTIMATE do
+        pcall(function()
+            local coregui = game:GetService("CoreGui")
+            local playerGui = game:GetService("Players").LocalPlayer and game:GetService("Players").LocalPlayer.PlayerGui
+
+            for _, gui in pairs(coregui:GetChildren()) do
+                local name = gui.Name or ""
+                if name:find("Kick") or name:find("Ban") or name:find("Disconnect") or
+                   name:find("Error") or name:find("Moderation") or name:find("Warning") or
+                   name:find("Alert") or name:find("Popup") or name:find("Notice") or
+                   name:find("Detection") or name:find("Anti") or name:find("Handshake") then
+                    gui:Destroy()
+                end
+            end
+
+            if playerGui then
+                for _, gui in pairs(playerGui:GetChildren()) do
+                    local name = gui.Name or ""
+                    if name:find("Kick") or name:find("Ban") or name:find("Disconnect") or
+                       name:find("Error") or name:find("Moderation") or name:find("Warning") or
+                       name:find("Detection") or name:find("Anti") or name:find("Handshake") then
+                        gui:Destroy()
+                    end
+                end
+            end
+        end)
+        task.wait(0.1)
+    end
+end)
+
+print("✅ HYPHON EMULATOR BYPASS ACTIVE")
+
+-- ============================================================
+-- 🎨 JOSTAR STORE UI (New Library)
+-- ============================================================
+-- ============================================================
+-- JOSTAR STORE UI (CUSTOM BLACK & WHITE / COMPACT / DRAGGABLE)
+-- ============================================================
+local Library = {}
+
+function Library:Window(config)
+    local Players = game:GetService("Players")
+    local UserInputService = game:GetService("UserInputService")
+    local player = Players.LocalPlayer
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "JOSTAR_STORE_UI"
+    gui.ResetOnSpawn = false
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local parent
+    pcall(function()
+        if typeof(gethui) == "function" then parent = gethui() end
+    end)
+    if not parent then
+        parent = game:GetService("CoreGui")
+    end
+    gui.Parent = parent
+
+    local main = Instance.new("Frame")
+    main.Name = "Main"
+    main.Size = UDim2.fromOffset(350, 250)
+    main.Position = UDim2.new(0.5, -175, 0.5, -125)
+    main.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    main.BorderSizePixel = 0
+    main.Parent = gui
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+    local outline = Instance.new("UIStroke", main)
+    outline.Color = Color3.fromRGB(235, 235, 235)
+    outline.Thickness = 1
+
+    local top = Instance.new("Frame")
+    top.Name = "TopBar"
+    top.Size = UDim2.new(1, 0, 0, 42)
+    top.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+    top.BorderSizePixel = 0
+    top.Parent = main
+    Instance.new("UICorner", top).CornerRadius = UDim.new(0, 8)
+
+    local title = Instance.new("TextLabel")
+    title.BackgroundTransparency = 1
+    title.Position = UDim2.fromOffset(13, 3)
+    title.Size = UDim2.new(1, -75, 0, 22)
+    title.Font = Enum.Font.GothamBold
+    title.Text = "JOSTAR STORE"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 14
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = top
+
+    local subtitle = Instance.new("TextLabel")
+    subtitle.BackgroundTransparency = 1
+    subtitle.Position = UDim2.fromOffset(13, 23)
+    subtitle.Size = UDim2.new(1, -75, 0, 14)
+    subtitle.Font = Enum.Font.Gotham
+    subtitle.Text = "MULTIFARM HUB  •  LIFETIME"
+    subtitle.TextColor3 = Color3.fromRGB(155, 155, 155)
+    subtitle.TextSize = 9
+    subtitle.TextXAlignment = Enum.TextXAlignment.Left
+    subtitle.Parent = top
+
+    local minimize = Instance.new("TextButton")
+    minimize.Size = UDim2.fromOffset(27, 25)
+    minimize.Position = UDim2.new(1, -35, 0, 8)
+    minimize.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
+    minimize.Text = "—"
+    minimize.TextColor3 = Color3.new(1, 1, 1)
+    minimize.TextSize = 16
+    minimize.Font = Enum.Font.GothamBold
+    minimize.Parent = top
+    Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 5)
+
+    local tabBar = Instance.new("Frame")
+    tabBar.BackgroundTransparency = 1
+    tabBar.Position = UDim2.fromOffset(10, 49)
+    tabBar.Size = UDim2.new(1, -20, 0, 29)
+    tabBar.Parent = main
+
+    local content = Instance.new("Frame")
+    content.Name = "Content"
+    content.BackgroundTransparency = 1
+    content.Position = UDim2.fromOffset(10, 84)
+    content.Size = UDim2.new(1, -20, 1, -94)
+    content.Parent = main
+
+    local minimized = false
+    minimize.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        content.Visible = not minimized
+        tabBar.Visible = not minimized
+        main.Size = minimized and UDim2.fromOffset(190, 42) or UDim2.fromOffset(350, 250)
+        minimize.Text = minimized and "+" or "—"
+    end)
+
+    -- Drag support for mouse and touchscreen.
+    local dragging, dragInput, dragStart, startPos
+    top.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or
+           input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    top.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or
+           input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                      startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    local window = { _main = main, _tabs = tabBar, _content = content, _sections = {} }
+    function window:Page(_)
+        local page = { _window = self }
+        function page:Section(options)
+            local section = { _items = {}, _window = self._window }
+            local tab = Instance.new("TextButton")
+            tab.Name = (options and options.Name) or "Section"
+            tab.Size = UDim2.new(0.5, -4, 1, 0)
+            tab.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+            tab.BorderSizePixel = 0
+            tab.Text = string.upper(tab.Name)
+            tab.TextColor3 = Color3.fromRGB(220, 220, 220)
+            tab.Font = Enum.Font.GothamBold
+            tab.TextSize = 9
+            tab.Parent = tabBar
+            Instance.new("UICorner", tab).CornerRadius = UDim.new(0, 5)
+            if options and options.Side == 2 then
+                tab.Position = UDim2.new(0.5, 4, 0, 0)
+            else
+                tab.Position = UDim2.fromOffset(0, 0)
+            end
+
+            local panel = Instance.new("ScrollingFrame")
+            panel.Name = tab.Name .. "Panel"
+            panel.Size = UDim2.fromScale(1, 1)
+            panel.BackgroundColor3 = Color3.fromRGB(17, 17, 17)
+            panel.BorderSizePixel = 0
+            panel.ScrollBarThickness = 3
+            panel.ScrollBarImageColor3 = Color3.fromRGB(180, 180, 180)
+            panel.Visible = false
+            panel.CanvasSize = UDim2.new()
+            panel.AutomaticCanvasSize = Enum.AutomaticSize.Y
+            panel.Parent = content
+            Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 6)
+            local pad = Instance.new("UIPadding", panel)
+            pad.PaddingTop = UDim.new(0, 8)
+            pad.PaddingBottom = UDim.new(0, 8)
+            pad.PaddingLeft = UDim.new(0, 8)
+            pad.PaddingRight = UDim.new(0, 8)
+            local layout = Instance.new("UIListLayout", panel)
+            layout.Padding = UDim.new(0, 6)
+            layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+            local function activate()
+                for _, item in ipairs(self._window._sections) do
+                    item.panel.Visible = item == section
+                    item.tab.BackgroundColor3 = item == section and Color3.fromRGB(235, 235, 235) or Color3.fromRGB(38, 38, 38)
+                    item.tab.TextColor3 = item == section and Color3.fromRGB(15, 15, 15) or Color3.fromRGB(220, 220, 220)
+                end
+            end
+            section.tab, section.panel = tab, panel
+            table.insert(self._window._sections, section)
+            tab.MouseButton1Click:Connect(activate)
+            if #self._window._sections == 1 or (options and options.Side == 1) then activate() end
+
+            function section:Toggle(cfg)
+                local row = Instance.new("TextButton")
+                row.Name = "Toggle"
+                row.Size = UDim2.new(1, -2, 0, 34)
+                row.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                row.BorderSizePixel = 0
+                row.Text = ""
+                row.Parent = panel
+                Instance.new("UICorner", row).CornerRadius = UDim.new(0, 5)
+                local label = Instance.new("TextLabel")
+                label.BackgroundTransparency = 1
+                label.Position = UDim2.fromOffset(10, 0)
+                label.Size = UDim2.new(1, -55, 1, 0)
+                label.Font = Enum.Font.Gotham
+                label.Text = tostring(cfg.Name or "Toggle")
+                label.TextColor3 = Color3.fromRGB(240, 240, 240)
+                label.TextSize = 11
+                label.TextXAlignment = Enum.TextXAlignment.Left
+                label.Parent = row
+                local state = cfg.Default == true
+                local switch = Instance.new("Frame")
+                switch.Size = UDim2.fromOffset(30, 16)
+                switch.Position = UDim2.new(1, -40, 0.5, -8)
+                switch.BackgroundColor3 = state and Color3.fromRGB(235, 235, 235) or Color3.fromRGB(65, 65, 65)
+                switch.BorderSizePixel = 0
+                switch.Parent = row
+                Instance.new("UICorner", switch).CornerRadius = UDim.new(1, 0)
+                local dot = Instance.new("Frame")
+                dot.Size = UDim2.fromOffset(12, 12)
+                dot.Position = state and UDim2.new(1, -14, 0, 2) or UDim2.fromOffset(2, 2)
+                dot.BackgroundColor3 = state and Color3.fromRGB(20, 20, 20) or Color3.fromRGB(220, 220, 220)
+                dot.BorderSizePixel = 0
+                dot.Parent = switch
+                Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+                row.MouseButton1Click:Connect(function()
+                    state = not state
+                    switch.BackgroundColor3 = state and Color3.fromRGB(235, 235, 235) or Color3.fromRGB(65, 65, 65)
+                    dot.Position = state and UDim2.new(1, -14, 0, 2) or UDim2.fromOffset(2, 2)
+                    dot.BackgroundColor3 = state and Color3.fromRGB(20, 20, 20) or Color3.fromRGB(220, 220, 220)
+                    if cfg.Callback then task.spawn(cfg.Callback, state) end
+                end)
+                if cfg.Callback then task.spawn(cfg.Callback, state) end
+            end
+
+            function section:Label(text)
+                local label = Instance.new("TextLabel")
+                label.Name = "StatLabel"
+                label.Size = UDim2.new(1, -2, 0, 25)
+                label.BackgroundColor3 = Color3.fromRGB(27, 27, 27)
+                label.BorderSizePixel = 0
+                label.Font = Enum.Font.Gotham
+                label.Text = tostring(text)
+                label.TextColor3 = Color3.fromRGB(230, 230, 230)
+                label.TextSize = 10
+                label.TextXAlignment = Enum.TextXAlignment.Left
+                label.Parent = panel
+                Instance.new("UICorner", label).CornerRadius = UDim.new(0, 5)
+                local padding = Instance.new("UIPadding", label)
+                padding.PaddingLeft = UDim.new(0, 9)
+                return {
+                    Instance = label,
+                    Set = function(_, value) label.Text = tostring(value) end,
+                    SetText = function(_, value) label.Text = tostring(value) end
+                }
+            end
+            return section
+        end
+        return page
+    end
+    return window
+end
+
+local Window = Library:Window({
+    Name = "JOSTAR STORE",
+    SubTitle = "Multifarm Hub",
+    TimeRemaining = "Lifetime"
+})
+
+local Pages = {}
+Pages[1] = Window:Page({ Icon = "", Columns = 1 })
+
+-- ============================================================
+-- AUTO REJOIN + AUTO CLICK PLAY (isolated scope)
+-- ============================================================
+_G.DEATH_TELEPORT_ACTIVE = false
+
+;(function()
+    local Players         = game:GetService("Players")
+    local TeleportService = game:GetService("TeleportService")
+    local LogService      = game:GetService("LogService")
+    local CoreGui         = game:GetService("CoreGui")
+    local LocalPlayer     = Players.LocalPlayer
+
+    _G.DEATH_TELEPORT_ACTIVE = false
+
+    local RejoinCfg = {
+        Enabled       = true,
+        Cooldown      = 0,
+        IsDeathRejoin = false,
+        VerifyBlocked = false,
+        TimesRejoined = 0,
+    }
+
+    local function DoRejoin()
+        if not RejoinCfg.Enabled then return end
+        if tick() - RejoinCfg.Cooldown < 10 then return end
+        RejoinCfg.Cooldown = tick()
+        if RejoinCfg.VerifyBlocked then return end
+        _G.DEATH_TELEPORT_ACTIVE = false
+        RejoinCfg.TimesRejoined = RejoinCfg.TimesRejoined + 1
+        RejoinCfg.IsDeathRejoin = false
+        if getgenv().MF_Stop then pcall(getgenv().MF_Stop) end
+        queue_on_teleport([[
+            task.wait(15)
+            _G.DEATH_TELEPORT_ACTIVE         = false
+            getgenv().AutoRejoinerEnabled    = true
+            getgenv().MF_AUTO_START          = true
+            loadstring(game:HttpGet('https://pastebin.com/raw/TrhEnbTj'))()
+        ]])
+        pcall(function() TeleportService:Teleport(10179538382) end)
+    end
+
+    getgenv().DoRejoin = DoRejoin
+    getgenv().SetAutoRejoin = function(state)
+        RejoinCfg.Enabled = state == true
+        if RejoinCfg.Enabled then RejoinCfg.VerifyBlocked = false end
+    end
+    getgenv().GetRejoinStats = function()
+        return RejoinCfg.TimesRejoined, RejoinCfg.IsDeathRejoin
+    end
+    getgenv().IsDeathTeleportActive = function()
+        return _G.DEATH_TELEPORT_ACTIVE == true
+    end
+
+    task.spawn(function()
+        local conn
+        conn = LogService.MessageOut:Connect(function(msg, mtype)
+            if mtype ~= Enum.MessageType.MessageError then return end
+            if msg:find("Verify Teleports") then
+                RejoinCfg.VerifyBlocked = true
+                return
+            end
+            if msg:find("Kicked") or msg:find("Disconnected") or msg:find("Idle") or
+               msg:find("Removed") or msg:find("Connection lost") or msg:find("Ban") then
+                if conn then conn:Disconnect() end
+                RejoinCfg.IsDeathRejoin = false
+                task.spawn(DoRejoin)
+            end
+        end)
+    end)
+
+    local function ConnectDeath(char)
+        if not char then return end
+        local hum = char:WaitForChild("Humanoid", 5)
+        if not hum then return end
+        hum.Died:Connect(function()
+            if not RejoinCfg.Enabled then return end
+            RejoinCfg.IsDeathRejoin = true
+            task.wait(3)
+            DoRejoin()
+        end)
+    end
+    if LocalPlayer.Character then ConnectDeath(LocalPlayer.Character) end
+    LocalPlayer.CharacterAdded:Connect(ConnectDeath)
+
+    task.spawn(function()
+        while true do
+            pcall(function()
+                local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+                for _, gui in pairs(CoreGui:GetChildren()) do
+                    local n = gui.Name or ""
+                    if n:find("Kick") or n:find("Ban") or n:find("Disconnect") or
+                       n:find("Error") or n:find("Moderation") or n:find("Warning") or
+                       n:find("Alert") or n:find("Popup") or n:find("Notice") or
+                       n:find("Detection") or n:find("Anti") or n:find("Handshake") then
+                        gui:Destroy()
+                    end
+                end
+                if playerGui then
+                    for _, gui in pairs(playerGui:GetChildren()) do
+                        local n = gui.Name or ""
+                        if n:find("Kick") or n:find("Ban") or n:find("Disconnect") or
+                           n:find("Error") or n:find("Moderation") or n:find("Warning") or
+                           n:find("Detection") or n:find("Anti") or n:find("Handshake") then
+                            gui:Destroy()
+                        end
+                    end
+                end
+            end)
+            task.wait(0.1)
+        end
+    end)
+
+    task.spawn(function()
+        while true do
+            pcall(function()
+                local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+                if playerGui then
+                    for _, gui in pairs(playerGui:GetChildren()) do
+                        if gui.Name == "Play" or gui.Name == "MainMenu" then
+                            for _, btn in pairs(gui:GetDescendants()) do
+                                if btn:IsA("TextButton") and (btn.Name == "Play" or btn.Text == "PLAY") then
+                                    btn:Fire()
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+            task.wait(1)
+        end
+    end)
+
+    task.spawn(function()
+        repeat task.wait() until game:IsLoaded()
+        if not LocalPlayer.Character then
+            LocalPlayer.CharacterAdded:Wait()
+        end
+        while true do
+            pcall(function()
+                local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
+                local IntroUI = PlayerGui and PlayerGui:FindFirstChild("IntroUI")
+                if IntroUI then
+                    local SurfaceGui = IntroUI:FindFirstChild("SurfaceGui")
+                    local Frame      = SurfaceGui and SurfaceGui:FindFirstChild("Frame")
+                    local PlayButton = Frame and Frame:FindFirstChild("Play")
+                    if PlayButton then
+                        local conns = getconnections(PlayButton.MouseButton1Click)
+                        if conns and conns[1] then
+                            conns[1]:Fire()
+                        end
+                    end
+                end
+            end)
+            task.wait(0.5)
+        end
+    end)
+end)()
+
+-- ============================================================
+-- SERVICES
+-- ============================================================
+local Players             = game:GetService("Players")
+local Workspace           = game:GetService("Workspace")
+local TweenService        = game:GetService("TweenService")
+local ReplicatedStorage   = game:GetService("ReplicatedStorage")
+local CoreGui             = game:GetService("CoreGui")
+local UserInputService    = game:GetService("UserInputService")
+local RunService          = game:GetService("RunService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local LocalPlayer         = Players.LocalPlayer
+local PlayerGui           = LocalPlayer:WaitForChild("PlayerGui")
+
+getgenv().STOP_ALL = false
+getgenv().RUNNING = false
+getgenv().CYCLE_COUNT = 0
+getgenv().AutoAntiDeath = true
+getgenv().AutoRejoiner = true
+
+local RemoteEvent = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("ReliableRemoteEvent")
+local originalGravity = Workspace.Gravity
+
+local RemoteEvents   = ReplicatedStorage:WaitForChild("RemoteEvents", 10)
+local ReliableRemote = RemoteEvents and RemoteEvents:WaitForChild("ReliableRemoteEvent", 10)
+local RELIABLE_ARG_SPAWN_MOTOR = buffer.fromstring("\015\001\001")
+
+-- ============================================================
+-- CONFIGURATION + MONEY TRACKER
+-- ============================================================
+local Configuration = {
+    Statistics = {
+        ["Runtime"]           = 0,
+        ["Hourly Rate"]       = 0,
+        ["Cash Made"]         = 0,
+        ["Cards Swiped"]      = 0,
+        ["Chips Fed"]         = 0,
+        ["Marshmallows Sold"] = 0,
+    },
+}
+
+local function GetCommaValue(n)
+    local s = tostring(math.floor(n))
+    while true do
+        local result, count = s:gsub("^(-?%d+)(%d%d%d)", "%1,%2")
+        s = result
+        if count == 0 then break end
+    end
+    return s
+end
+
+local function FormatRuntime(seconds)
+    return string.format("%02d:%02d:%02d",
+        math.floor(seconds / 3600),
+        math.floor((seconds % 3600) / 60),
+        seconds % 60)
+end
+
+local _moneyCache = { label = nil, value = 0, listener = nil, lastScan = 0 }
+
+local MONEY_KEYWORDS = { "cash","money","balance","wallet","currency","dollar","uang","saldo","koin","coin" }
+local MONEY_EXCLUDE_KEYWORDS = { "shop","store","price","cost","buy","purchase","market","toko","harga","beli","upgrade","premium","robux","gamepass","reward","prize","preview" }
+
+local function ParseMoneyText(text)
+    if not text then return nil end
+    text = tostring(text)
+    if not text:find("%$") then return nil end
+    local cleaned = text:upper():gsub("[^%d%.KMB]", "")
+    if cleaned == "" then return nil end
+    local numStr = cleaned:match("^[%d%.]+")
+    if not numStr then return nil end
+    local num = tonumber(numStr) or 0
+    local suffix = cleaned:match("[KMB]")
+    if suffix == "K" then return math.floor(num * 1e3)
+    elseif suffix == "M" then return math.floor(num * 1e6)
+    elseif suffix == "B" then return math.floor(num * 1e9)
+    end
+    return math.floor(num)
+end
+
+local function ChainContains(obj, keywords)
+    local node, depth = obj, 0
+    while node and node ~= PlayerGui and depth < 8 do
+        local n = tostring(node.Name):lower()
+        for _, kw in ipairs(keywords) do
+            if n:find(kw, 1, true) then return true end
+        end
+        node = node.Parent; depth = depth + 1
+    end
+    return false
+end
+
+local function ScanForMoneyLabel()
+    local preferred, fallback = {}, {}
+    local searchRoots = { PlayerGui }
+    pcall(function()
+        local cg = game:GetService("CoreGui")
+        if cg then table.insert(searchRoots, cg) end
+    end)
+    pcall(function()
+        if typeof(gethui) == "function" then
+            local hidden = gethui()
+            if hidden then table.insert(searchRoots, hidden) end
+        end
+    end)
+
+    for _, root in ipairs(searchRoots) do
+        local ok, list = pcall(function() return root:GetDescendants() end)
+        if ok and list then
+            for _, d in ipairs(list) do
+                if (d:IsA("TextLabel") or d:IsA("TextButton")) and d.Visible then
+                    local val = ParseMoneyText(d.Text)
+                    if val and not ChainContains(d, MONEY_EXCLUDE_KEYWORDS) then
+                        if ChainContains(d, MONEY_KEYWORDS) then
+                            table.insert(preferred, { label = d, value = val })
+                        else
+                            table.insert(fallback, { label = d, value = val })
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if #preferred > 0 then
+        table.sort(preferred, function(a, b) return a.value > b.value end)
+        return preferred[1].label, preferred[1].value
+    end
+    if #fallback > 0 then
+        table.sort(fallback, function(a, b) return a.value > b.value end)
+        return fallback[1].label, fallback[1].value
+    end
+    return nil, nil
+end
+
+local function AttachMoneyListener()
+    local lbl, val = ScanForMoneyLabel()
+    if not lbl then return end
+    if _moneyCache.label == lbl and _moneyCache.label.Parent and _moneyCache.listener then
+        _moneyCache.value = val; return
+    end
+    if _moneyCache.listener then
+        pcall(function() _moneyCache.listener:Disconnect() end)
+        _moneyCache.listener = nil
+    end
+    _moneyCache.label = lbl
+    _moneyCache.value = val
+    _moneyCache.listener = lbl:GetPropertyChangedSignal("Text"):Connect(function()
+        local newVal = ParseMoneyText(lbl.Text)
+        if not newVal then return end
+        local oldVal = _moneyCache.value
+        if newVal > oldVal then
+            Configuration.Statistics["Cash Made"] = Configuration.Statistics["Cash Made"] + (newVal - oldVal)
+        end
+        _moneyCache.value = newVal
+    end)
+end
+
+task.spawn(function()
+    task.wait(2)
+    AttachMoneyListener()
+    pcall(function()
+        PlayerGui.ChildAdded:Connect(function()
+            task.wait(0.5)
+            AttachMoneyListener()
+        end)
+    end)
+    while task.wait(2) do
+        if not _moneyCache.label
+           or not _moneyCache.label.Parent
+           or not _moneyCache.listener then
+            AttachMoneyListener()
+        end
+    end
+end)
+
+-- ============================================================
+-- 🎨 JOSTAR STORE UI (NEW LIBRARY)
+-- ============================================================
+local MainSection    = Pages[1]:Section({ Name = "Main Settings", Icon = "131145598162617", Side = 1 })
+local StatsSection   = Pages[1]:Section({ Name = "Live Statistics", Icon = "131145598162617", Side = 2 })
+
+local startTime = 0
+getgenv().FarmStartTime = nil
+
+-- ============================================================
+-- MAIN SETTINGS
+-- ============================================================
+MainSection:Toggle({
+    Name = "Auto Rejoiner",
+    Flag = "AutoRejoiner",
+    Default = true,
+    Callback = function(v)
+        getgenv().AutoRejoiner = v
+        task.spawn(function()
+            local t = 0
+            while not getgenv().SetAutoRejoin and t < 5 do
+                task.wait(0.1); t = t + 0.1
+            end
+            if getgenv().SetAutoRejoin then
+                getgenv().SetAutoRejoin(v)
+            end
+        end)
+    end,
+})
+
+MainSection:Toggle({
+    Name = "Aktifkan Farm",
+    Flag = "AutoFarmEnabled",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            if getgenv().MF_Start then getgenv().MF_Start() end
+        else
+            if getgenv().MF_Stop then getgenv().MF_Stop() end
+        end
+    end,
+})
+
+-- ============================================================
+-- LIVE STATISTICS
+-- ============================================================
+local statLabels = {}
+
+local function makeStatLabel(displayName, statKey, formatter)
+    local lbl = StatsSection:Label(displayName .. ": ...")
+    statLabels[displayName] = {
+        label   = lbl,
+        fmt     = formatter,
+        statKey = statKey or displayName,
+    }
+    return lbl
+end
+
+makeStatLabel("⏱️ | Runtime", "Runtime", function(v)
+    local st = getgenv().FarmStartTime
+    if not st then return "00:00:00" end
+    return FormatRuntime(math.floor(os.clock() - st))
+end)
+
+makeStatLabel("💰 | Cash Made",         "Cash Made",          function(v) return "$" .. GetCommaValue(v) end)
+makeStatLabel("💳 | Cards Swiped",      "Cards Swiped")
+makeStatLabel("🍟 | Chips Fed",         "Chips Fed")
+makeStatLabel("🍡 | Marshmallows Sold", "Marshmallows Sold")
+
+local function _setLabel(lbl, text)
+    if not lbl then return end
+    text = tostring(text)
+    pcall(function()
+        if type(lbl.Set) == "function"       then lbl:Set(text);       return end
+        if type(lbl.SetText) == "function"   then lbl:SetText(text);   return end
+        if type(lbl.SetName) == "function"   then lbl:SetName(text);   return end
+        if type(lbl.Update) == "function"    then lbl:Update(text);    return end
+        if lbl.Instance and lbl.Instance.Text ~= nil then
+            lbl.Instance.Text = text; return
+        end
+        if lbl.TextLabel and lbl.TextLabel.Text ~= nil then
+            lbl.TextLabel.Text = text; return
+        end
+        local root = lbl.Frame or lbl.UIElement or lbl.Holder
+        if root then
+            for _, d in ipairs(root:GetDescendants()) do
+                if d:IsA("TextLabel") then d.Text = text; return end
+            end
+        end
+    end)
+end
+
+task.spawn(function()
+    while true do
+        for name, entry in pairs(statLabels) do
+            local v = Configuration.Statistics[entry.statKey] or 0
+            local text
+            if entry.fmt then
+                text = name .. ": " .. entry.fmt(v)
+            else
+                text = name .. ": " .. tostring(v)
+            end
+            _setLabel(entry.label, text)
+        end
+        task.wait(0.5)
+    end
+end)
+
+-- ============================================================
+-- UI WRAPPER API
+-- ============================================================
+local UI = {}
+function UI.setStatus(_) end
+function UI.AddStat(statName, amount)
+    amount = amount or 1
+    if Configuration.Statistics[statName] ~= nil then
+        Configuration.Statistics[statName] = Configuration.Statistics[statName] + amount
+    end
+end
+function UI.ResetStats()
+    for k in pairs(Configuration.Statistics) do Configuration.Statistics[k] = 0 end
+    startTime = os.clock()
+end
+
+RunService.Heartbeat:Connect(function()
+    local st = getgenv().FarmStartTime
+    if st then
+        Configuration.Statistics["Runtime"] = math.floor(os.clock() - st)
+    else
+        Configuration.Statistics["Runtime"] = 0
+    end
+end)
+
+print("✅ JOSTAR STORE UI loaded")
+
+-- ============================================================
+-- FARM LOGIC (separate scope)
+-- ============================================================
+;(function()
+local _MotorLockedRotation
+
+local print = function() end
+local warn  = function() end
+
+-- 🌍 GROUND DETECTION
+local GROUND_NAME_KEYWORDS = {
+    "road", "ground", "terrain", "baseplate", "path",
+    "jalan", "tanah", "aspal", "pavement", "street", "sidewalk",
+    "lab", "tile", "floor", "lantai",
+}
+local HORIZONTAL_UPVECTOR_MIN = 0.7
+
+local function IsPartHorizontal(part)
+    if not part or not part.CFrame then return false end
+    return math.abs(part.CFrame.UpVector.Y) >= HORIZONTAL_UPVECTOR_MIN
+end
+
+local function IsGroundPartGeneric(part)
+    if not part or not part.Anchored then return false end
+    local pname = (part.Name .. " " .. (part.Parent and part.Parent.Name or "")):lower()
+    for _, kw in ipairs(GROUND_NAME_KEYWORDS) do
+        if pname:find(kw, 1, true) then
+            if IsPartHorizontal(part) then return true end
+        end
+    end
+    if part.Size.Y < part.Size.X * 0.4
+       and part.Size.Y < part.Size.Z * 0.4
+       and part.Size.X > 10 and part.Size.Z > 10 then
+        if IsPartHorizontal(part) then return true end
+    end
+    return false
+end
+
+local function PartHasProximityPrompt(part)
+    if not part or not part.Parent then return false end
+    for _, ch in ipairs(part:GetChildren()) do
+        if ch:IsA("ProximityPrompt") then return true end
+        if ch:IsA("Attachment") and ch:FindFirstChildWhichIsA("ProximityPrompt") then return true end
+    end
+    local parent = part.Parent
+    if parent and parent ~= Workspace then
+        for _, ch in ipairs(parent:GetChildren()) do
+            if ch:IsA("ProximityPrompt") then return true end
+            if ch:IsA("Attachment") and ch:FindFirstChildWhichIsA("ProximityPrompt") then return true end
+        end
+        if parent:IsA("Model") then
+            if parent:FindFirstChildWhichIsA("ProximityPrompt", true) then return true end
+        end
+    end
+    return false
+end
+
+local NOCLIP_EXCLUDE_KEYWORDS = {
+    "cooking pot", "cookingpot", "cook pot", "cookpot",
+    "stove", "cooktop", "oven", "kompor", "dapur",
+}
+
+local function IsNoclipExcluded(part)
+    if not part or not part.Parent then return true end
+    local node, depth = part, 0
+    while node and node ~= Workspace and depth < 5 do
+        local n = tostring(node.Name):lower()
+        for _, kw in ipairs(NOCLIP_EXCLUDE_KEYWORDS) do
+            if n:find(kw, 1, true) then return true end
+        end
+        node = node.Parent
+        depth = depth + 1
+    end
+    if PartHasProximityPrompt(part) then return true end
+    return false
+end
+
+local function SafeFindPartsInRegion3(region, maxParts)
+    maxParts = maxParts or 200
+    local ok, result = pcall(function()
+        return Workspace:FindPartsInRegion3WithWhiteList(region, {}, maxParts)
+    end)
+    if ok and result then return result end
+    local ok2, result2 = pcall(function()
+        return Workspace:FindPartsInRegion3WithIgnoreList(region, {}, maxParts)
+    end)
+    if ok2 and result2 then return result2 end
+    return {}
+end
+
+-- GHOST MODE
+local FORCE_NOCLIP_KEYWORDS = {
+    "filler", "blocker", "barrier", "invisiblewall", "invisible wall",
+    "antinoclip", "anti-noclip", "anti noclip",
+}
+
+local function IsForceNoclipPart(part)
+    if not part then return false end
+    local node, depth = part, 0
+    while node and node ~= Workspace and depth < 5 do
+        local n = tostring(node.Name):lower()
+        for _, kw in ipairs(FORCE_NOCLIP_KEYWORDS) do
+            if n:find(kw, 1, true) then return true end
+        end
+        node = node.Parent
+        depth = depth + 1
+    end
+    return false
+end
+
+task.spawn(function()
+    while true do
+        pcall(function()
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and not obj:IsA("Terrain") and obj.CanCollide then
+                    if IsForceNoclipPart(obj) then
+                        obj.CanCollide = false
+                        obj.CanTouch   = false
+                    end
+                end
+            end
+        end)
+        task.wait(1)
+    end
+end)
+
+local ghostParts = {}
+local ghostConn = nil
+_BLINK_NOCLIP_ALL = false
+
+local function startGhostMode()
+    if ghostConn then return end
+    ghostConn = RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local hum = char:FindFirstChild("Humanoid")
+        if hum and hum.Sit then return end
+        local hrp = char.HumanoidRootPart
+
+        local function processPart(part)
+            if not part or not part:IsA("BasePart") or part:IsA("Terrain") then return end
+            if part:IsDescendantOf(char) then return end
+            if part:IsA("Seat") or part:IsA("VehicleSeat") or part.Name:lower():find("seat") then return end
+
+            if not IsForceNoclipPart(part) then
+                if IsNoclipExcluded(part) then return end
+                local model = part:FindFirstAncestorOfClass("Model")
+                if model then
+                    for _, d in ipairs(model:GetDescendants()) do
+                        if d:IsA("VehicleSeat") or d:IsA("Seat") then return end
+                    end
+                end
+                if not _BLINK_NOCLIP_ALL and IsGroundPartGeneric(part) then return end
+            end
+
+            if not ghostParts[part] then
+                ghostParts[part] = { CanCollide = part.CanCollide, CanTouch = part.CanTouch }
+            end
+            part.CanCollide = false
+            part.CanTouch = false
+        end
+
+        for _, part in ipairs(hrp:GetTouchingParts()) do processPart(part) end
+
+        local params = RaycastParams.new()
+        params.FilterType = Enum.RaycastFilterType.Exclude
+        params.FilterDescendantsInstances = {char}
+        local dirs = {
+            Vector3.new(0, -4, 0),
+            hrp.CFrame.LookVector * 8,
+            -hrp.CFrame.LookVector * 8,
+            hrp.CFrame.RightVector * 8,
+            -hrp.CFrame.RightVector * 8,
+            (hrp.CFrame.LookVector + Vector3.new(0, -0.3, 0)).Unit * 8,
+        }
+        for _, dir in ipairs(dirs) do
+            local res = workspace:Raycast(hrp.Position, dir, params)
+            if res and res.Instance then
+                processPart(res.Instance)
+                local parent = res.Instance.Parent
+                if parent and parent:IsA("Model") then
+                    for _, d in ipairs(parent:GetDescendants()) do
+                        if d:IsA("BasePart") then processPart(d) end
+                    end
+                end
+            end
+        end
+
+        local region = Region3.new(
+            hrp.Position - Vector3.new(12, 8, 12),
+            hrp.Position + Vector3.new(12, 8, 12)
+        )
+        local nearby = SafeFindPartsInRegion3(region, 200)
+        for _, part in ipairs(nearby) do
+            if part and part.Parent then processPart(part) end
+        end
+    end)
+end
+
+local function stopGhostMode()
+    if ghostConn then ghostConn:Disconnect(); ghostConn = nil end
+    for part, state in pairs(ghostParts) do
+        if part and part.Parent then
+            part.CanCollide = state.CanCollide
+            part.CanTouch = state.CanTouch
+        end
+    end
+    ghostParts = {}
+end
+
+-- LOCK POSITION
+local lockConn = nil
+
+local function startLockMode(targetPos)
+    if lockConn then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChild("Humanoid")
+    if not hrp or not humanoid then return end
+    startGhostMode()
+    Workspace.Gravity = 0
+    humanoid.PlatformStand = true
+    local oldBv = hrp:FindFirstChild("FarmLock")
+    if oldBv then oldBv:Destroy() end
+    local bv = Instance.new("BodyVelocity")
+    bv.Name = "FarmLock"
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.Parent = hrp
+    hrp.CFrame = CFrame.new(targetPos)
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.Anchored = true
+    lockConn = RunService.Heartbeat:Connect(function()
+        local hrp2 = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp2 then
+            local dist = (hrp2.Position - targetPos).Magnitude
+            if dist > 2 then
+                hrp2.CFrame = CFrame.new(targetPos)
+                hrp2.AssemblyLinearVelocity = Vector3.zero
+            end
+        end
+    end)
+end
+
+local function stopLockMode()
+    if lockConn then lockConn:Disconnect(); lockConn = nil end
+    Workspace.Gravity = originalGravity
+    local char = LocalPlayer.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local humanoid = char:FindFirstChild("Humanoid")
+        if hrp then
+            local bv = hrp:FindFirstChild("FarmLock")
+            if bv then bv:Destroy() end
+            hrp.Anchored = false
+        end
+        if humanoid then humanoid.PlatformStand = false end
+    end
+    stopGhostMode()
+end
+
+-- HELPERS
+local function GetLiveCharacter(timeout)
+    local deadline = os.clock() + (timeout or 0)
+    repeat
+        local Character = LocalPlayer.Character
+        local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+        local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+        if Character and Character.Parent and Humanoid and Humanoid.Health > 0 and RootPart and RootPart.Parent then
+            return Character, Humanoid, RootPart
+        end
+        if not timeout or timeout <= 0 then break end
+        task.wait(0.05)
+    until os.clock() >= deadline
+    return nil, nil, nil
+end
+
+local function fixCamera()
+    local cam = workspace.CurrentCamera
+    local char = LocalPlayer.Character
+    if not cam or not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hum and hrp then
+        cam.CameraSubject = hum
+        cam.CameraType = Enum.CameraType.Custom
+        hrp.Anchored = false
+    end
+end
+
+local function cleanCharacterState()
+    pcall(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hum then hum.PlatformStand = false; hum:UnequipTools() end
+        if hrp then
+            hrp.Anchored = false
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            hrp.AssemblyAngularVelocity = Vector3.zero
+        end
+        fixCamera()
+    end)
+end
+
+local function equipToolByName(keyword)
+    keyword = tostring(keyword):lower()
+    local found
+    local char = LocalPlayer.Character
+    if char then
+        for _, ch in ipairs(char:GetChildren()) do
+            if ch:IsA("Tool") and tostring(ch.Name):lower():find(keyword, 1, true) then found = ch; break end
+        end
+    end
+    if not found then
+        for _, bp in ipairs(LocalPlayer.Backpack:GetChildren()) do
+            if bp:IsA("Tool") and tostring(bp.Name):lower():find(keyword, 1, true) then found = bp; break end
+        end
+    end
+    if found then
+        local h = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if h then h:EquipTool(found) end
+        task.wait(0.3)
+        return true
+    end
+    return false
+end
+
+local function unequipTools()
+    local h = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if h then h:UnequipTools() end
+end
+
+local function countToolByName(keyword)
+    keyword = tostring(keyword):lower()
+    local count = 0
+    for _, bp in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if bp:IsA("Tool") and tostring(bp.Name):lower():find(keyword, 1, true) then count = count + 1 end
+    end
+    local char = LocalPlayer.Character
+    if char then
+        for _, ch in ipairs(char:GetChildren()) do
+            if ch:IsA("Tool") and tostring(ch.Name):lower():find(keyword, 1, true) then count = count + 1 end
+        end
+    end
+    return count
+end
+
+local function ScavengeInventory()
+    local Backpack = LocalPlayer:WaitForChild("Backpack")
+    local char = LocalPlayer.Character
+    local Potato, Flour, Water, Gelatin, SugarBlockBag = 0, 0, 0, 0, 0
+    local function process(container)
+        if not container then return end
+        for _, Object in next, container:GetChildren() do
+            if not Object:IsA("Tool") then continue end
+            local n = Object.Name
+            if     n == "Potato"          then Potato       += 1
+            elseif n == "Flour"           then Flour        += 1
+            elseif n == "Water"           then Water        += 1
+            elseif n == "Gelatin"         then Gelatin      += 1
+            elseif n == "Sugar Block Bag" then SugarBlockBag += 1
+            end
+        end
+    end
+    process(Backpack)
+    process(char)
+    return Potato, Flour, Water, Gelatin, SugarBlockBag
+end
+
+local function instantRespawnTP(targetPos)
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    local result = { done = false, newChar = nil }
+    local conn
+    conn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+        result.done = true
+        result.newChar = newChar
+        if conn then conn:Disconnect() end
+    end)
+    hrp.CFrame = CFrame.new(999999, 999999, 999999)
+    task.wait(0.75)
+    local deadline = os.clock() + 4
+    while not result.done and os.clock() < deadline do task.wait(0.1) end
+    if conn then conn:Disconnect() end
+    local newHrp
+    local newChar = result.newChar
+    if newChar then newHrp = newChar:WaitForChild("HumanoidRootPart", 5) end
+    if not newHrp then
+        local _, _, cur = GetLiveCharacter(3)
+        newHrp = cur or hrp
+        if not newHrp then return false end
+    end
+    task.wait(0.35)
+    local targetCF = CFrame.new(targetPos)
+    for _ = 1, 5 do
+        if getgenv().STOP_ALL then return false end
+        newHrp.CFrame = targetCF
+        task.wait(0.1)
+    end
+    fixCamera()
+    return true
+end
+
+-- STEP-BY-STEP UNDERGROUND
+local UNDERGROUND_STEP_SIZE  = 1.2
+local UNDERGROUND_STEP_WAIT  = 0.09
+local UNDERGROUND_SETTLE     = 0.03
+
+local function discreteStepTP(endP, stepSize, waitTime)
+    stepSize = stepSize or 1.2
+    waitTime = waitTime or 0.08
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return false end
+    local hrp = char.HumanoidRootPart
+
+    while not getgenv().STOP_ALL do
+        local dist = (endP - hrp.Position).Magnitude
+        if dist <= stepSize then
+            hrp.CFrame = CFrame.new(endP)
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            return true
+        else
+            hrp.CFrame = CFrame.new(hrp.Position + ((endP - hrp.Position).Unit * stepSize))
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        end
+        task.wait(waitTime)
+    end
+    return false
+end
+
+-- ⚡ BLINK TELEPORT
+local _blinkTeleportCore
+
+local function blinkTeleport(targetPos, isUnderground)
+    local ok, result = pcall(_blinkTeleportCore, targetPos, isUnderground)
+    if ok then return result end
+    return false
+end
+
+_blinkTeleportCore = function(targetPos, isUnderground)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return false end
+    local hrp = char.HumanoidRootPart
+    local humanoid = char:FindFirstChild("Humanoid")
+
+    local seat = humanoid and humanoid.SeatPart
+    local veh  = (seat and (seat:IsA("VehicleSeat") or seat:IsA("Seat")))
+                 and seat:FindFirstAncestorOfClass("Model") or nil
+
+    if veh then
+        if humanoid.SeatPart ~= seat then
+            pcall(function() seat:Sit(humanoid) end)
+            task.wait(0.15)
+        end
+        pcall(function()
+            if getgenv().UnlockMotorPosition then getgenv().UnlockMotorPosition() end
+        end)
+        task.wait(0.08)
+
+        _BLINK_NOCLIP_ALL = true
+        startGhostMode()
+        Workspace.Gravity = 0
+
+        local _vehCollideBackup = {}
+        local function setVehCollide(state)
+            for _, p in ipairs(veh:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    if state == false then
+                        if _vehCollideBackup[p] == nil then
+                            _vehCollideBackup[p] = { CanCollide = p.CanCollide, CanTouch = p.CanTouch }
+                        end
+                        p.CanCollide = false
+                        p.CanTouch   = false
+                    else
+                        local b = _vehCollideBackup[p]
+                        if b then
+                            pcall(function()
+                                p.CanCollide = b.CanCollide
+                                p.CanTouch   = b.CanTouch
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+
+        setVehCollide(false)
+
+        local function moveVehTo(pos, waitTime)
+            pcall(function()
+                local rot = _MotorLockedRotation or veh:GetPivot().Rotation
+                veh:PivotTo(CFrame.new(pos) * rot)
+            end)
+            pcall(function()
+                hrp.AssemblyLinearVelocity  = Vector3.zero
+                hrp.AssemblyAngularVelocity = Vector3.zero
+                for _, p in ipairs(veh:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        p.AssemblyLinearVelocity  = Vector3.zero
+                        p.AssemblyAngularVelocity = Vector3.zero
+                    end
+                end
+            end)
+            if humanoid and humanoid.SeatPart ~= seat then
+                pcall(function() seat:Sit(humanoid) end)
+            end
+            task.wait(waitTime or 0.05)
+        end
+
+        if isUnderground then
+            local underY = -4
+            local startPos = veh:GetPivot().Position
+            local DESCEND_STEP = 2
+            local DESCEND_WAIT = 0.06
+            local curY = startPos.Y
+            while not getgenv().STOP_ALL and curY > underY do
+                curY = math.max(underY, curY - DESCEND_STEP)
+                moveVehTo(Vector3.new(startPos.X, curY, startPos.Z), DESCEND_WAIT)
+            end
+            local STEP_SIZE = 9.3
+            local STEP_WAIT = 0.028
+            local MAX_ITER  = 6000
+            local iter = 0
+            while not getgenv().STOP_ALL and iter < MAX_ITER do
+                iter = iter + 1
+                local curPos = veh:GetPivot().Position
+                local dX = targetPos.X - curPos.X
+                local dZ = targetPos.Z - curPos.Z
+                local distH = math.sqrt(dX * dX + dZ * dZ)
+                if distH <= STEP_SIZE then
+                    moveVehTo(Vector3.new(targetPos.X, underY, targetPos.Z), 0.08)
+                    break
+                end
+                local dirX = dX / distH
+                local dirZ = dZ / distH
+                moveVehTo(Vector3.new(curPos.X + dirX * STEP_SIZE, underY, curPos.Z + dirZ * STEP_SIZE), STEP_WAIT)
+            end
+            local ASCEND_STEP = 2
+            local ASCEND_WAIT = 0.06
+            local curPos2 = veh:GetPivot().Position
+            local curY2 = curPos2.Y
+            while not getgenv().STOP_ALL and curY2 < targetPos.Y do
+                curY2 = math.min(targetPos.Y, curY2 + ASCEND_STEP)
+                moveVehTo(Vector3.new(targetPos.X, curY2, targetPos.Z), ASCEND_WAIT)
+            end
+        else
+            moveVehTo(targetPos)
+        end
+
+        setVehCollide(true)
+        Workspace.Gravity = originalGravity
+        _BLINK_NOCLIP_ALL = false
+        stopGhostMode()
+        fixCamera()
+        task.wait(0.35)
+        task.wait(0.1)
+        pcall(function()
+            if getgenv().LockMotorPosition then getgenv().LockMotorPosition() end
+        end)
+        return true
+    end
+
+    _BLINK_NOCLIP_ALL = true
+    startGhostMode()
+    if humanoid then humanoid.PlatformStand = true end
+    Workspace.Gravity = 0
+    if isUnderground then
+        local underY = -4
+        discreteStepTP(Vector3.new(hrp.Position.X, underY, hrp.Position.Z), 1.2, 0.06)
+        discreteStepTP(Vector3.new(targetPos.X, underY, targetPos.Z), 2.5, 0.05)
+        discreteStepTP(Vector3.new(targetPos.X, targetPos.Y, targetPos.Z), 1.2, 0.06)
+    else
+        discreteStepTP(targetPos)
+    end
+    Workspace.Gravity = originalGravity
+    if humanoid then humanoid.PlatformStand = false end
+    _BLINK_NOCLIP_ALL = false
+    stopGhostMode()
+    fixCamera()
+    return true
+end
+
+local function TeleportToKitchen(_)
+    if _G.OwnedKitchenPos then
+        blinkTeleport(_G.OwnedKitchenPos, true)
+        task.wait(0.35)
+        fixCamera()
+    end
+end
+
+-- 🏍️ MOTOR
+local DRIVER_SEAT_NAMES = { "DriveSeat", "DriverSeat", "Driver", "Drive", "Seat" }
+local HOLD_DURATION            = 5
+local WALK_BEFORE_SIT_DURATION = 0.9
+local WALK_BEFORE_SIT_KEYS     = 4
+local SIDE_OFFSET              = 3.5
+local REQUIRE_OWN_BIKE         = true
+local DEALER_POS = Vector3.new(730.34, 3.57, 455.84)
+
+local _MotorState = { bike = nil, seat = nil }
+local _MotorLockConn = nil
+local _MotorLockPartsOriginal = {}
+
+local function LockMotorPosition()
+    if _MotorLockConn then return end
+    local bike = _MotorState.bike
+    if not bike or not bike.Parent then return end
+    _MotorLockPartsOriginal = {}
+    for _, part in ipairs(bike:GetDescendants()) do
+        if part:IsA("BasePart") then
+            _MotorLockPartsOriginal[part] = { Anchored = part.Anchored, CanCollide = part.CanCollide }
+            pcall(function()
+                part.Anchored = true
+                part.AssemblyLinearVelocity  = Vector3.zero
+                part.AssemblyAngularVelocity = Vector3.zero
+            end)
+        end
+    end
+    _MotorLockConn = RunService.Heartbeat:Connect(function()
+        local b = _MotorState.bike
+        if not b or not b.Parent then UnlockMotorPosition(); return end
+        if _MotorLockedRotation then
+            pcall(function()
+                local curPos = b:GetPivot().Position
+                b:PivotTo(CFrame.new(curPos) * _MotorLockedRotation)
+            end)
+        end
+        pcall(function()
+            local bikePivot = b:GetPivot()
+            local checkPos  = bikePivot.Position
+            local params = RaycastParams.new()
+            params.FilterType = Enum.RaycastFilterType.Exclude
+            params.FilterDescendantsInstances = { b, LocalPlayer.Character }
+            local downHit = workspace:Raycast(checkPos, Vector3.new(0, -3, 0), params)
+            if downHit and downHit.Instance then
+                local part = downHit.Instance
+                local nm = (part.Name .. " " .. (part.Parent and part.Parent.Name or "")):lower()
+                local isObstacle = nm:find("block") or nm:find("crate") or nm:find("box")
+                                   or nm:find("brick") or nm:find("rock") or nm:find("barrel")
+                if isObstacle then
+                    local liftY = checkPos.Y + 1.5
+                    b:PivotTo(CFrame.new(Vector3.new(checkPos.X, liftY, checkPos.Z)) * (_MotorLockedRotation or bikePivot.Rotation))
+                end
+            end
+        end)
+        for _, part in ipairs(b:GetDescendants()) do
+            if part:IsA("BasePart") then
+                if not part.Anchored then pcall(function() part.Anchored = true end) end
+                pcall(function()
+                    part.AssemblyLinearVelocity  = Vector3.zero
+                    part.AssemblyAngularVelocity = Vector3.zero
+                end)
+            end
+        end
+        local char = LocalPlayer.Character
+        local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            pcall(function()
+                hrp.AssemblyLinearVelocity  = Vector3.zero
+                hrp.AssemblyAngularVelocity = Vector3.zero
+            end)
+        end
+    end)
+end
+
+local function UnlockMotorPosition()
+    if _MotorLockConn then _MotorLockConn:Disconnect(); _MotorLockConn = nil end
+    for part, state in pairs(_MotorLockPartsOriginal) do
+        if part and part.Parent then
+            pcall(function()
+                part.Anchored   = state.Anchored
+                part.CanCollide = state.CanCollide
+            end)
+        end
+    end
+    _MotorLockPartsOriginal = {}
+end
+
+local function ResetMotorLockedRotation() _MotorLockedRotation = nil end
+
+local function RecaptureMotorRotation()
+    local bike = _MotorState and _MotorState.bike
+    if not bike or not bike.Parent then return false end
+    local ok, pv = pcall(function() return bike:GetPivot() end)
+    if not ok or not pv then return false end
+    _MotorLockedRotation = pv.Rotation
+    pcall(function() bike:PivotTo(CFrame.new(pv.Position) * _MotorLockedRotation) end)
+    return true
+end
+
+getgenv().LockMotorPosition         = LockMotorPosition
+getgenv().UnlockMotorPosition       = UnlockMotorPosition
+getgenv().ResetMotorLockedRotation  = ResetMotorLockedRotation
+getgenv().RecaptureMotorRotation    = RecaptureMotorRotation
+
+-- ============================================================
+-- ✅ FIX: SPAWN MOTOR 1x SAJA (cooldown global)
+-- ============================================================
+local _lastSpawnMotorTime = 0
+local SPAWN_COOLDOWN = 5  -- detik
+
+local function FireSpawnMotor()
+    if not ReliableRemote then return false end
+    if os.clock() - _lastSpawnMotorTime < SPAWN_COOLDOWN then return false end
+    _lastSpawnMotorTime = os.clock()
+    return pcall(function() ReliableRemote:FireServer(RELIABLE_ARG_SPAWN_MOTOR) end)
+end
+
+getgenv().ResetSpawnMotorCooldown = function()
+    _lastSpawnMotorTime = 0
+end
+
+local function FindDriveSeat(bike)
+    if not bike then return nil end
+    for _, name in ipairs(DRIVER_SEAT_NAMES) do
+        local s = bike:FindFirstChild(name, true)
+        if s and (s:IsA("VehicleSeat") or s:IsA("Seat")) then return s end
+    end
+    local seats = {}
+    for _, d in ipairs(bike:GetDescendants()) do
+        if d:IsA("VehicleSeat") or d:IsA("Seat") then table.insert(seats, d) end
+    end
+    if #seats == 0 then return nil end
+    if #seats == 1 then return seats[1] end
+    local filtered = {}
+    for _, s in ipairs(seats) do
+        local n = s.Name:lower()
+        if not (n:find("passenger") or n:find("back") or n:find("rear") or n:find("penumpang") or n:find("belakang")) then
+            table.insert(filtered, s)
+        end
+    end
+    if #filtered == 1 then return filtered[1] end
+    if #filtered > 1 then table.sort(filtered, function(a,b) return a.Position.Z < b.Position.Z end); return filtered[1] end
+    return nil
+end
+
+local function IsDriverSeat(seat)
+    if not seat then return false end
+    local n = seat.Name:lower()
+    return not (n:find("passenger") or n:find("back") or n:find("rear") or n:find("penumpang") or n:find("belakang"))
+end
+
+local function IsMyBike(model)
+    if not model or not model:IsA("Model") then return false end
+    local myName, myUserId = LocalPlayer.Name, tostring(LocalPlayer.UserId)
+    for _, attr in ipairs({"Owner","OwnerId","UserId","Player","Creator","VehicleOwner","owner","ownerId","userId","player","creator","vehicleOwner"}) do
+        local ok, val = pcall(function() return model:GetAttribute(attr) end)
+        if ok and val ~= nil then
+            if val == LocalPlayer or val == myUserId or val == myName or tostring(val) == myUserId or tostring(val) == myName then return true end
+        end
+    end
+    for _, child in ipairs(model:GetDescendants()) do
+        if child:IsA("ObjectValue") then
+            local n = child.Name:lower()
+            if n:find("owner") or n:find("creator") or n:find("player") or n:find("user") then
+                if child.Value == LocalPlayer then return true end
+            end
+        elseif child:IsA("StringValue") then
+            local n = child.Name:lower()
+            if n:find("owner") or n:find("user") or n:find("player") then
+                if child.Value == myName or child.Value == myUserId then return true end
+            end
+        end
+    end
+    local parent, depth = model.Parent, 0
+    while parent and parent ~= Workspace and depth < 5 do
+        local pn = parent.Name
+        if pn == myName or pn == myUserId or pn:find(myName, 1, true) or pn:find(myUserId, 1, true) then return true end
+        parent = parent.Parent; depth = depth + 1
+    end
+    local mn = model.Name
+    if mn:find(myName, 1, true) or mn:find(myUserId, 1, true) then return true end
+    return false
+end
+
+local function IsOthersBike(model)
+    for _, child in ipairs(model:GetDescendants()) do
+        if child:IsA("ObjectValue") then
+            local n = child.Name:lower()
+            if n:find("owner") or n:find("player") or n:find("creator") then
+                if child.Value and child.Value:IsA("Player") and child.Value ~= LocalPlayer then return true end
+            end
+        end
+    end
+    return false
+end
+
+local function FindBike()
+    local char = LocalPlayer.Character
+    local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+    local myPos = hrp and hrp.Position or Vector3.zero
+    local candidates = {}
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") then
+            local seat = FindDriveSeat(obj)
+            if seat and IsDriverSeat(seat) and not IsOthersBike(obj) then
+                local isMine = IsMyBike(obj)
+                if not REQUIRE_OWN_BIKE or isMine then
+                    table.insert(candidates, {model=obj, seat=seat, ownerPrio=isMine and 0 or 1})
+                end
+            end
+        end
+    end
+    if #candidates == 0 then return nil end
+    table.sort(candidates, function(a,b)
+        if a.ownerPrio ~= b.ownerPrio then return a.ownerPrio < b.ownerPrio end
+        local da = (a.model:GetPivot().Position - myPos).Magnitude
+        local db = (b.model:GetPivot().Position - myPos).Magnitude
+        return da < db
+    end)
+    return candidates[1].model
+end
+
+local function InteractPromptNormal(prompt, holdSec)
+    if not prompt then return false end
+    holdSec = holdSec or HOLD_DURATION
+    if not prompt.Enabled then return false end
+    local ok = pcall(function() prompt:InputHoldBegin() end)
+    if not ok then return false end
+    task.wait(holdSec)
+    pcall(function() prompt:InputHoldEnd() end)
+    return true
+end
+
+local function PressKey(keyCode, holdSec)
+    pcall(function() VirtualInputManager:SendKeyEvent(true, keyCode, false, game) end)
+    task.wait(holdSec or 0.15)
+    pcall(function() VirtualInputManager:SendKeyEvent(false, keyCode, false, game) end)
+end
+
+local function WalkWASDTowardSeat(seat, duration, keyCount)
+    duration = duration or WALK_BEFORE_SIT_DURATION
+    keyCount = keyCount or WALK_BEFORE_SIT_KEYS
+    local char, hum, hrp = GetLiveCharacter(1)
+    if not char or not hum or not hrp then return false end
+    local look = CFrame.lookAt(hrp.Position, seat.Position)
+    hrp.CFrame = look
+    task.wait(0.05)
+    local perKey = duration / keyCount
+    local keys = {Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D}
+    for i = 1, keyCount do
+        local key = keys[((i - 1) % #keys) + 1]
+        PressKey(key, perKey)
+        task.wait(0.03)
+    end
+    pcall(function() hum:Move(Vector3.zero, false) end)
+    task.wait(0.1)
+    return true
+end
+
+local function SitOnBike(bike)
+    if not bike then return false end
+    if REQUIRE_OWN_BIKE and not IsMyBike(bike) then return false end
+    local DriveSeat = FindDriveSeat(bike)
+    if not DriveSeat or not IsDriverSeat(DriveSeat) then return false end
+
+    unequipTools()
+    task.wait(0.3)
+    if getgenv().STOP_ALL then return false end
+
+    local TP_VERIFY_DIST = 15
+    local tpOk = false
+    local tpAttempt = 0
+    while not getgenv().STOP_ALL do
+        tpAttempt = tpAttempt + 1
+        if not DriveSeat.Parent then task.wait(0.3); continue end
+        local seatPos = DriveSeat.Position
+        local seatCF  = DriveSeat.CFrame
+        local sidePos = seatPos + seatCF.RightVector * SIDE_OFFSET + Vector3.new(0, 2.5, 0)
+        local ok = instantRespawnTP(sidePos)
+        if ok then
+            task.wait(0.25)
+            local _, _, hrpCheck = GetLiveCharacter(2)
+            if hrpCheck then
+                local dist = (hrpCheck.Position - seatPos).Magnitude
+                if dist <= TP_VERIFY_DIST then tpOk = true; break end
+                local snapCF = CFrame.new(sidePos)
+                for _ = 1, 5 do
+                    if getgenv().STOP_ALL then break end
+                    hrpCheck.CFrame = snapCF
+                    hrpCheck.AssemblyLinearVelocity  = Vector3.zero
+                    hrpCheck.AssemblyAngularVelocity = Vector3.zero
+                    task.wait(0.08)
+                end
+                local dist2 = (hrpCheck.Position - seatPos).Magnitude
+                if dist2 <= TP_VERIFY_DIST then tpOk = true; break end
+            end
+        end
+        pcall(function()
+            local c = LocalPlayer.Character
+            local h = c and c:FindFirstChildOfClass("Humanoid")
+            local r = c and c:FindFirstChild("HumanoidRootPart")
+            if h then h.PlatformStand = false end
+            if r then
+                r.Anchored = false
+                r.AssemblyLinearVelocity  = Vector3.zero
+                r.AssemblyAngularVelocity = Vector3.zero
+            end
+        end)
+        pcall(fixCamera)
+        task.wait(0.4)
+    end
+
+    if not tpOk then return false end
+    if getgenv().STOP_ALL then return false end
+
+    task.wait(0.3)
+    if getgenv().STOP_ALL then return false end
+
+    local char, hum, hrp = GetLiveCharacter(2)
+    if not char or not hum or not hrp then return false end
+
+    if (hrp.Position - DriveSeat.Position).Magnitude > TP_VERIFY_DIST then
+        return SitOnBike(bike)
+    end
+
+    hrp.CFrame = CFrame.lookAt(hrp.Position, DriveSeat.Position)
+    task.wait(0.1)
+    WalkWASDTowardSeat(DriveSeat, WALK_BEFORE_SIT_DURATION, WALK_BEFORE_SIT_KEYS)
+    task.wait(0.15)
+
+    char, hum, hrp = GetLiveCharacter(1)
+    if not char or not hum or not hrp then return false end
+    if (hrp.Position - DriveSeat.Position).Magnitude > 6 then
+        local seatCF2 = DriveSeat.CFrame
+        local snapCF = CFrame.lookAt(DriveSeat.Position + seatCF2.RightVector * 2.5 + Vector3.new(0, 2, 0), DriveSeat.Position)
+        for _ = 1, 4 do
+            hrp.CFrame = snapCF
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            task.wait(0.03)
+        end
+    end
+
+    local Prompt
+    for _, d in ipairs(DriveSeat:GetDescendants()) do
+        if d:IsA("ProximityPrompt") then Prompt = d; break end
+    end
+    if Prompt then
+        InteractPromptNormal(Prompt, HOLD_DURATION)
+    else
+        pcall(function() DriveSeat:Sit(hum) end)
+    end
+
+    local deadline = os.clock() + (HOLD_DURATION + 3)
+    while os.clock() < deadline do
+        if getgenv().STOP_ALL then return false end
+        local c = LocalPlayer.Character
+        local h = c and c:FindFirstChildOfClass("Humanoid")
+        if h and h.SeatPart == DriveSeat then
+            _MotorState.bike = bike
+            _MotorState.seat = DriveSeat
+            if not _MotorLockedRotation then
+                local ok, pv = pcall(function() return bike:GetPivot() end)
+                if ok and pv then _MotorLockedRotation = pv.Rotation end
+            end
+            LockMotorPosition()
+            return true
+        end
+        task.wait(0.05)
+    end
+
+    local seatPos2   = DriveSeat.Position
+    local seatCF2    = DriveSeat.CFrame
+    local respawnPos = seatPos2 + seatCF2.UpVector * 1.0
+    instantRespawnTP(respawnPos)
+    task.wait(0.25)
+    fixCamera()
+
+    local c2 = LocalPlayer.Character
+    local h2 = c2 and c2:FindFirstChildOfClass("Humanoid")
+    local r2 = c2 and c2:FindFirstChild("HumanoidRootPart")
+    if h2 and r2 then pcall(function() DriveSeat:Sit(h2) end) end
+
+    local deadline2 = os.clock() + 3
+    while os.clock() < deadline2 do
+        if getgenv().STOP_ALL then return false end
+        local c = LocalPlayer.Character
+        local h = c and c:FindFirstChildOfClass("Humanoid")
+        if h and h.SeatPart == DriveSeat then
+            _MotorState.bike = bike
+            _MotorState.seat = DriveSeat
+            if not _MotorLockedRotation then
+                local ok, pv = pcall(function() return bike:GetPivot() end)
+                if ok and pv then _MotorLockedRotation = pv.Rotation end
+            end
+            LockMotorPosition()
+            return true
+        end
+        task.wait(0.1)
+    end
+    return false
+end
+
+-- NOCLIP FULLY
+local _StepTask = nil
+local _currentVeh = nil
+local _GhostConn = nil
+local _ModifiedParts = {}
+
+local function ForceNoclip(part)
+    if not part or not part:IsA("BasePart") then return end
+    if _ModifiedParts[part] == nil then
+        _ModifiedParts[part] = { CanCollide = part.CanCollide, CanTouch = part.CanTouch }
+    end
+    part.CanCollide = false
+    part.CanTouch   = false
+end
+
+local function stopGhostModeFully()
+    if _GhostConn then _GhostConn:Disconnect(); _GhostConn = nil end
+    for part, state in pairs(_ModifiedParts) do
+        if part and part.Parent then
+            pcall(function()
+                part.CanCollide = state.CanCollide
+                part.CanTouch   = state.CanTouch
+            end)
+        end
+    end
+    _ModifiedParts = {}
+    pcall(function() if getgenv().UnlockMotorPosition then getgenv().UnlockMotorPosition() end end)
+end
+
+local function StopAutoDrive()
+    if _StepTask then task.cancel(_StepTask); _StepTask = nil end
+    pcall(function()
+        local char = LocalPlayer.Character
+        local hum  = char and char:FindFirstChildOfClass("Humanoid")
+        local seat = hum and hum.SeatPart
+        if seat and seat:IsA("VehicleSeat") then
+            seat.Throttle = 0
+            seat.Steer    = 0
+        end
+    end)
+    pcall(stopGhostModeFully)
+end
+
+-- ============================================================
+-- ✅ FIX: SPAWN MOTOR AFTER LOCK DOOR (spawn 1x, scan terpisah)
+-- ============================================================
+local function SpawnMotorAfterLockDoor()
+    instantRespawnTP(DEALER_POS)
+    task.wait(0.8)
+
+    -- Reset rotasi lama
+    pcall(function()
+        if getgenv().ResetMotorLockedRotation then getgenv().ResetMotorLockedRotation() end
+    end)
+
+    local SPAWN_SCAN_RADIUS = 35
+
+    -- Helper: cari motor di sekitar dealer
+    local function findSpawnedBike()
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") then
+                local seat = FindDriveSeat(obj)
+                if seat and IsDriverSeat(seat) then
+                    local ok, pv = pcall(function() return obj:GetPivot() end)
+                    if ok and pv and (pv.Position - DEALER_POS).Magnitude <= SPAWN_SCAN_RADIUS then
+                        if not IsOthersBike(obj) then
+                            return obj
+                        end
+                    end
+                end
+            end
+        end
+        return nil
+    end
+
+    -- 🔍 Cek dulu apakah motor SUDAH ada (jangan spawn ulang)
+    local spawnBike = findSpawnedBike()
+
+    -- ✅ Kalau belum ada, spawn SEKALI saja
+    if not spawnBike then
+        local spawned = FireSpawnMotor()
+        if not spawned then
+            -- Cooldown aktif → tunggu sebentar lalu cek existing
+            task.wait(SPAWN_COOLDOWN)
+            spawnBike = findSpawnedBike()
+        else
+            task.wait(1.2)
+        end
+
+        -- Scan sampai 6 detik (HANYA scan, TIDAK spawn lagi)
+        if not spawnBike then
+            local scanDeadline = os.clock() + 6
+            while os.clock() < scanDeadline and not getgenv().STOP_ALL do
+                spawnBike = findSpawnedBike()
+                if spawnBike then break end
+                task.wait(0.2)
+            end
+        end
+    end
+
+    -- Save rotasi SEBELUM FindBike
+    if spawnBike then
+        local ok, pv = pcall(function() return spawnBike:GetPivot() end)
+        if ok and pv then
+            _MotorLockedRotation = pv.Rotation
+        end
+    end
+
+    -- Find bike (validasi owner + jarak)
+    local bike, deadline = nil, os.clock() + 20
+    while os.clock() < deadline and not getgenv().STOP_ALL do
+        bike = FindBike()
+        if bike then break end
+        task.wait(0.3)
+    end
+    if not bike then return false end
+
+    if not _MotorLockedRotation then
+        local ok, pv = pcall(function() return bike:GetPivot() end)
+        if ok and pv then _MotorLockedRotation = pv.Rotation end
+    end
+
+    local ok2 = SitOnBike(bike)
+    if not ok2 then return false end
+    return true
+end
+
+-- FIRE PROMPT
+local MAX_PROMPT_DIST = 20
+local _touchedPrompts = {}
+
+local function RegisterPrompt(prompt)
+    if not prompt or not prompt.Parent then return nil end
+    if not _touchedPrompts[prompt] then
+        _touchedPrompts[prompt] = {
+            HoldDuration          = prompt.HoldDuration,
+            RequiresLineOfSight   = prompt.RequiresLineOfSight,
+            MaxActivationDistance = prompt.MaxActivationDistance,
+        }
+    end
+    return _touchedPrompts[prompt]
+end
+
+local function RestoreAllPrompts()
+    for prompt, orig in pairs(_touchedPrompts) do
+        if prompt and prompt.Parent then
+            pcall(function()
+                prompt.HoldDuration          = orig.HoldDuration
+                prompt.RequiresLineOfSight   = orig.RequiresLineOfSight
+                prompt.MaxActivationDistance = orig.MaxActivationDistance
+            end)
+        end
+    end
+    _touchedPrompts = {}
+end
+
+local function getCharacterPosition()
+    local _, _, hrp = GetLiveCharacter(1)
+    return hrp and hrp.Position or nil
+end
+
+local function firePromptOnce(prompt)
+    if not prompt or not prompt.Parent then return false end
+    local orig = RegisterPrompt(prompt)
+    pcall(function()
+        prompt.MaxActivationDistance = 9999
+        prompt.RequiresLineOfSight = false
+        prompt.HoldDuration = 0
+        fireproximityprompt(prompt)
+    end)
+    task.wait(0.04)
+    if orig then
+        pcall(function()
+            prompt.MaxActivationDistance = orig.MaxActivationDistance
+            prompt.RequiresLineOfSight   = orig.RequiresLineOfSight
+            prompt.HoldDuration          = orig.HoldDuration
+        end)
+    end
+    return true
+end
+
+local function fireAllNearOnce(pos, radius)
+    radius = radius or 18
+    local charPos = getCharacterPosition()
+    if not charPos then return false end
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local distToPos = (obj.Position - pos).Magnitude
+            local distToChar = (obj.Position - charPos).Magnitude
+            if distToPos <= radius and distToChar <= MAX_PROMPT_DIST then
+                local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+                if prompt then firePromptOnce(prompt); return true end
+            end
+        end
+    end
+    return false
+end
+
+-- POSITIONS
+local LAMONT_POS        = Vector3.new(510.817, 4.581, 601.048)
+local DELI_POS          = Vector3.new(-759.197, 3.489, -194.846)
+local LAB_CLIPBOARD     = Vector3.new(-478.83, 3.86, -438.92)
+local LAB_CUTTER        = Vector3.new(-459.33, 4.20, -452.60)
+local LAB_BAG           = Vector3.new(-459.72, 3.63, -473.52)
+local LAB_UNION         = Vector3.new(-489.10, 3.88, -519.40)
+local LAB_POT           = Vector3.new(-520.364, 4.671, -491.708)
+local FAKEID_POS        = Vector3.new(215, 6, -332)
+local BANK_POS          = Vector3.new(-48, 4, -315)
+local CARD_PROCESS_POS  = Vector3.new(-39.06, 3.60, -333.59)
+local POORGUY_POS       = Vector3.new(-39, 3, -24)
+
+local ApartmentData = {
+    { ID = 2, BuyPos = Vector3.new(-284.60, 3.59, -694.33), DoorPos = Vector3.new(-279.77, 7.94, -706.62), KitchenPos = Vector3.new(-280.61, 3.22, -753.50) },
+    { ID = 3, BuyPos = Vector3.new(-228.80, 3.59, -694.50), DoorPos = Vector3.new(-223.92, 7.93, -707.19), KitchenPos = Vector3.new(-224.52, 3.74, -753.60) },
+    { ID = 4, BuyPos = Vector3.new(1197.11, 3.71, -237.50), DoorPos = Vector3.new(1199.14, 3.71, -243.04), KitchenPos = Vector3.new(1202.15, 3.58, -220.04) },
+    { ID = 5, BuyPos = Vector3.new(1185.42, 3.71, -243.37), DoorPos = Vector3.new(1183.58, 3.71, -238.20), KitchenPos = Vector3.new(1180.41, 3.58, -227.24) }
+}
+
+local HOMELESS_LIST = {
+    { Name = "1", Pos = Vector3.new(-315.35, 3.72,  -361.56) },
+    { Name = "2", Pos = Vector3.new(52.89,   3.72,  -425.36) },
+    { Name = "3", Pos = Vector3.new(152.88,  3.73,  -210.08) },
+    { Name = "4", Pos = Vector3.new(-522.75, -7.86, -165.08) },
+    { Name = "5", Pos = Vector3.new(65.12,   3.73,  68.10) },
+    { Name = "6", Pos = Vector3.new(26.04,   3.73,  217.89) },
+    { Name = "7", Pos = Vector3.new(520.08,  3.87,  -295.52) },
+    { Name = "8", Pos = Vector3.new(699.28,  3.72,  -427.05) },
+    { Name = "9", Pos = Vector3.new(900.03,  3.94,  -283.12) },
+    { Name = "10",Pos = Vector3.new(874.89,  3.73,  -63.02) },
+}
+
+local function FindAvailableATMs()
+    local map = Workspace:FindFirstChild("Map")
+    if not map then return {} end
+    local atms = map:FindFirstChild("ATMS")
+    if not atms then return {} end
+    local result = {}
+    for _, ATM in next, atms:GetChildren() do
+        local screen = ATM:FindFirstChild("ATMScreen")
+        if screen and screen:IsA("BasePart") and screen.Transparency == 0 then
+            table.insert(result, ATM)
+        end
+    end
+    return result
+end
+
+local function FindNearestAvailableATM()
+    local atms = FindAvailableATMs()
+    if #atms == 0 then return nil end
+    local charPos = getCharacterPosition()
+    if not charPos then return atms[1] end
+    local nearestATM, nearestDist = nil, math.huge
+    for _, ATM in ipairs(atms) do
+        local pos = ATM:GetPivot().Position
+        local screen = ATM:FindFirstChild("ATMScreen")
+        if screen and screen:IsA("BasePart") then pos = screen.Position end
+        local dist = (pos - charPos).Magnitude
+        if dist < nearestDist then nearestDist = dist; nearestATM = ATM end
+    end
+    return nearestATM
+end
+
+local function BuyWater() pcall(function() RemoteEvent:FireServer(buffer.fromstring("\024\019\003")) end) end
+local function BuySugar() pcall(function() RemoteEvent:FireServer(buffer.fromstring("\024\019\002")) end) end
+local function BuyGelatin() pcall(function() RemoteEvent:FireServer(buffer.fromstring("\024\019\001")) end) end
+local function buyFlour() pcall(function() RemoteEvent:FireServer(buffer.fromstring("\024\021\001")) end) end
+local function buyPotato() pcall(function() RemoteEvent:FireServer(buffer.fromstring("\024\021\002")) end) end
+
+-- APARTMENT
+local function matchPromptText(actionText, keyword)
+    if not keyword then return true end
+    local text = string.lower(actionText or "")
+    keyword = string.lower(keyword)
+    if keyword == "lock" and string.find(text, "unlock") then return false end
+    return string.find(text, keyword) ~= nil
+end
+
+local function firePromptAt(pos, maxDist, keyword)
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Enabled then
+            local pPos = obj.Parent and (obj.Parent:IsA("BasePart") and obj.Parent.Position or (obj.Parent:IsA("Attachment") and obj.Parent.WorldPosition))
+            if pPos and (pos - pPos).Magnitude <= maxDist then
+                if matchPromptText(obj.ActionText, keyword) then
+                    RegisterPrompt(obj)
+                    obj.RequiresLineOfSight = false
+                    obj.HoldDuration = 0
+                    if fireproximityprompt then
+                        fireproximityprompt(obj)
+                    else
+                        obj:InputHoldBegin(); task.wait(0.05); obj:InputHoldEnd()
+                    end
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function checkPromptExistsAt(pos, maxDist, keyword)
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Enabled then
+            local pPos = obj.Parent and (obj.Parent:IsA("BasePart") and obj.Parent.Position or (obj.Parent:IsA("Attachment") and obj.Parent.WorldPosition))
+            if pPos and (pos - pPos).Magnitude <= maxDist then
+                if matchPromptText(obj.ActionText, keyword) then return true end
+            end
+        end
+    end
+    return false
+end
+
+local function secureDoor(doorPos)
+    local maxAttempts = 10
+    for i = 1, maxAttempts do
+        if getgenv().STOP_ALL then return false end
+        if checkPromptExistsAt(doorPos, 8, "unlock") then return true end
+        if checkPromptExistsAt(doorPos, 8, "lock") then
+            firePromptAt(doorPos, 8, "lock")
+            task.wait(0.5)
+            if checkPromptExistsAt(doorPos, 8, "unlock") then
+                return true
+            else
+                firePromptAt(doorPos, 8, "open")
+                task.wait(0.7)
+            end
+        else
+            firePromptAt(doorPos, 8, "open")
+            task.wait(0.5)
+        end
+    end
+    return false
+end
+
+local function CleanAprtParts(entry)
+    if not entry then return false end
+    local destroyed = 0
+    local KEEP = { ["Cooking Pot"] = true, ["Board"] = true, ["backboard"] = true, ["name"] = true }
+    local potPart = entry:FindFirstChild("Cooking Pot", true)
+    local potPos = potPart and (potPart:IsA("BasePart") and potPart.Position or (potPart:IsA("Model") and potPart:GetPivot().Position)) or nil
+    local KEEP_R = 3
+
+    local function isKeep(part)
+        local node = part
+        repeat
+            if KEEP[node.Name] then return true end
+            node = node.Parent
+        until not node or node == entry
+        for _, d in ipairs(part:GetDescendants()) do
+            if d:IsA("BasePart") or d:IsA("Model") then
+                if KEEP[d.Name] then return true end
+            end
+        end
+        return false
+    end
+
+    for _, part in ipairs(entry:GetDescendants()) do
+        if not (part:IsA("BasePart") or part:IsA("Model") or part:IsA("Folder")) then continue end
+        if isKeep(part) then continue end
+        if potPos and part:IsA("BasePart") then
+            local dx = part.Position.X - potPos.X
+            local dz = part.Position.Z - potPos.Z
+            local under = potPos.Y - part.Position.Y
+            if dx * dx + dz * dz <= KEEP_R * KEEP_R and under > -1 and under < 6 then continue end
+        end
+        pcall(function() part:Destroy() end)
+        destroyed = destroyed + 1
+    end
+    return destroyed > 0
+end
+
+local function FindApartmentContainer()
+    if not _G.OwnedKitchenPos then return nil end
+    local bestPot, bestDist = nil, 40
+    for _, pot in ipairs(Workspace:GetDescendants()) do
+        if pot.Name == "Cooking Pot" then
+            local potPos
+            if pot:IsA("BasePart") then potPos = pot.Position
+            elseif pot:IsA("Model") then potPos = pot:GetPivot().Position end
+            if potPos then
+                local d = (potPos - _G.OwnedKitchenPos).Magnitude
+                if d < bestDist then bestDist = d; bestPot = pot end
+            end
+        end
+    end
+    if not bestPot then return nil end
+    return bestPot:FindFirstAncestorOfClass("Model")
+end
+
+_G.NoApartmentFull = false
+_G.OwnedKitchenPos = nil
+_G.OwnedDoorPos = nil
+
+-- ============================================================
+-- ✅ SETUP APARTMENT (robust + retry)
+-- ============================================================
+local function SetupApartment()
+    -- Cek apakah udah punya apartment
+    local ownedData = nil
+    for _, data in ipairs(ApartmentData) do
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("TextLabel") then
+                local txt = string.upper(obj.Text or "")
+                if txt == string.upper(LocalPlayer.Name) then
+                    local gui = obj:FindFirstAncestorOfClass("SurfaceGui") or obj:FindFirstAncestorOfClass("BillboardGui")
+                    local uiPart = gui and (gui.Adornee or gui.Parent)
+                    if uiPart and uiPart:IsA("BasePart") and (uiPart.Position - data.BuyPos).Magnitude <= 8 then
+                        ownedData = data
+                        break
+                    end
+                end
+            end
+        end
+        if ownedData then break end
+    end
+
+    if ownedData then
+        _G.OwnedKitchenPos = ownedData.KitchenPos
+        _G.OwnedDoorPos = ownedData.DoorPos
+        _G.NoApartmentFull = false
+        instantRespawnTP(ownedData.DoorPos)
+        task.wait(0.5)
+        secureDoor(ownedData.DoorPos)
+        task.wait(0.3)
+        local aptEntry = FindApartmentContainer()
+        if aptEntry then CleanAprtParts(aptEntry) end
+        task.wait(0.4)
+        return SpawnMotorAfterLockDoor()
+    end
+
+    -- Scan VACANT dengan retry
+    local targetData = nil
+    local MAX_SCAN_ATTEMPTS = 3
+
+    for scanAttempt = 1, MAX_SCAN_ATTEMPTS do
+        if getgenv().STOP_ALL then return false end
+
+        for _, data in ipairs(ApartmentData) do
+            local isVacant = false
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("TextLabel") and string.find(string.upper(obj.Text or ""), "VACANT") then
+                    local gui = obj:FindFirstAncestorOfClass("SurfaceGui") or obj:FindFirstAncestorOfClass("BillboardGui")
+                    local uiPart = gui and (gui.Adornee or gui.Parent)
+                    if uiPart and uiPart:IsA("BasePart") and (uiPart.Position - data.BuyPos).Magnitude <= 5 then
+                        isVacant = true
+                        break
+                    end
+                end
+            end
+            if isVacant then targetData = data; break end
+        end
+
+        if targetData then break end
+        task.wait(1)
+    end
+
+    if not targetData then
+        _G.NoApartmentFull = true
+        return false
+    end
+
+    -- Retry purchase apartment
+    local MAX_PURCHASE_ATTEMPTS = 5
+    local purchased = false
+
+    for attempt = 1, MAX_PURCHASE_ATTEMPTS do
+        if getgenv().STOP_ALL then return false end
+
+        instantRespawnTP(targetData.BuyPos)
+        task.wait(0.8)
+        firePromptAt(targetData.BuyPos, 6, "purchase")
+        task.wait(1.5)
+
+        local purchasedOK = false
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("TextLabel") then
+                local txt = string.upper(obj.Text or "")
+                if txt == string.upper(LocalPlayer.Name) then
+                    local gui = obj:FindFirstAncestorOfClass("SurfaceGui") or obj:FindFirstAncestorOfClass("BillboardGui")
+                    local uiPart = gui and (gui.Adornee or gui.Parent)
+                    if uiPart and uiPart:IsA("BasePart") and (uiPart.Position - targetData.BuyPos).Magnitude <= 8 then
+                        purchasedOK = true
+                        break
+                    end
+                end
+            end
+        end
+
+        if purchasedOK then
+            purchased = true
+            break
+        end
+        task.wait(1)
+    end
+
+    if not purchased then
+        _G.NoApartmentFull = true
+        return false
+    end
+
+    _G.NoApartmentFull = false
+    _G.OwnedKitchenPos = targetData.KitchenPos
+    _G.OwnedDoorPos = targetData.DoorPos
+
+    blinkTeleport(targetData.DoorPos, false)
+    task.wait(0.7)
+    secureDoor(targetData.DoorPos)
+
+    task.wait(0.5)
+    local aptEntry = FindApartmentContainer()
+    if aptEntry then CleanAprtParts(aptEntry) end
+    task.wait(0.4)
+
+    return SpawnMotorAfterLockDoor()
+end
+
+local function findLamont()
+    if workspace.Folders and workspace.Folders.NPCs then
+        for _, v in pairs(workspace.Folders.NPCs:GetChildren()) do
+            if v.Name == "Lamont Bell" then return v end
+        end
+    end
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v.Name == "Lamont Bell" and v:IsA("Model") then return v end
+    end
+    return nil
+end
+
+local function af_FirePrompt(prompt)
+    if not prompt or not prompt.Parent then return end
+    local orig = RegisterPrompt(prompt)
+    pcall(function()
+        prompt.MaxActivationDistance = 9999
+        prompt.RequiresLineOfSight = false
+        prompt.HoldDuration = 0
+        task.wait(0.03)
+        fireproximityprompt(prompt)
+        task.wait(0.06)
+    end)
+    if orig then
+        pcall(function()
+            prompt.MaxActivationDistance = orig.MaxActivationDistance
+            prompt.RequiresLineOfSight   = orig.RequiresLineOfSight
+            prompt.HoldDuration          = orig.HoldDuration
+        end)
+    end
+end
+
+local function af_FindPromptByName(keyword, maxDist)
+    local charPos = getCharacterPosition()
+    if not charPos then return nil end
+    keyword = tostring(keyword):lower()
+    maxDist = maxDist or 25
+    local best, bestDist = nil, maxDist
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Enabled then
+            local parent = obj.Parent
+            local pPos
+            if parent then
+                if parent:IsA("BasePart") then pPos = parent.Position
+                elseif parent:IsA("Attachment") then pPos = parent.WorldPosition
+                elseif parent:IsA("Model") then pPos = parent:GetPivot().Position
+                end
+                if not pPos and parent.Parent then
+                    if parent.Parent:IsA("BasePart") then pPos = parent.Parent.Position
+                    elseif parent.Parent:IsA("Model") then pPos = parent.Parent:GetPivot().Position
+                    end
+                end
+            end
+            if pPos then
+                local nameChain = ""
+                local p = parent
+                local depth = 0
+                while p and p ~= Workspace and depth < 6 do
+                    nameChain = nameChain .. " " .. tostring(p.Name):lower()
+                    p = p.Parent
+                    depth = depth + 1
+                end
+                local d = (pPos - charPos).Magnitude
+                if d <= bestDist and nameChain:find(keyword, 1, true) then
+                    bestDist = d
+                    best = obj
+                end
+            end
+        end
+    end
+    return best
+end
+
+local function af_FirePromptByName(keyword, maxDist)
+    local prompt = af_FindPromptByName(keyword, maxDist)
+    if prompt then af_FirePrompt(prompt); return true end
+    return false
+end
+
+local function af_Equip(toolName)
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    local tool = (LocalPlayer.Backpack and LocalPlayer.Backpack:FindFirstChild(toolName)) or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild(toolName))
+    if tool then pcall(function() hum:EquipTool(tool) end) end
+end
+
+local function af_Unequip()
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if hum then pcall(function() hum:UnequipTools() end) end
+end
+
+local function waitForTimer(pot, maxWait, checkInterval)
+    checkInterval = checkInterval or 0.3
+    local elapsed = 0
+    while elapsed < maxWait do
+        if getgenv().STOP_ALL then return false end
+        local timer = pot:FindFirstChild("Timer")
+        if not timer then
+            for _, child in pairs(pot:GetChildren()) do
+                if child:IsA("TextLabel") and child.Name == "Timer" then timer = child; break end
+            end
+        end
+        if timer and timer:IsA("TextLabel") and (timer.Text or "") == "0" then return true end
+        task.wait(checkInterval)
+        elapsed = elapsed + checkInterval
+    end
+    return true
+end
+
+-- POT CACHE
+local PotCache = {}
+local PotCacheKitchen = nil
+local PotCacheTime = 0
+
+local function IsPotInUse(pot)
+    if not pot or not pot.Parent then return true end
+    local timer = pot:FindFirstChild("Timer")
+    if not timer then
+        for _, child in pairs(pot:GetDescendants()) do
+            if child:IsA("TextLabel") and child.Name == "Timer" then timer = child; break end
+        end
+    end
+    if timer and timer:IsA("TextLabel") then
+        local txt = (timer.Text or ""):gsub("%s", "")
+        if txt == "0" or txt == "" then return false end
+        return true
+    end
+    for _, attrName in ipairs({ "Cooking", "InUse", "Occupied", "IsCooking", "IsUsed" }) do
+        local ok, val = pcall(function() return pot:GetAttribute(attrName) end)
+        if ok and val ~= nil then
+            if val == true then return true end
+            if val == false then return false end
+        end
+    end
+    return false
+end
+
+local function ScanPotsNear(kitchenPos, radius)
+    radius = radius or 15
+    local list = {}
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        local isPot = false
+        if obj.Name == "Cooking Pot" then isPot = true
+        elseif (obj:IsA("BasePart") or obj:IsA("Model")) and obj.Name:lower():find("pot", 1, true) then isPot = true
+        end
+        if isPot then
+            local pos = obj:IsA("BasePart") and obj.Position or (obj:IsA("Model") and obj:GetPivot().Position)
+            if pos then
+                local d = (pos - kitchenPos).Magnitude
+                if d <= radius then
+                    local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+                    if not prompt then
+                        local att = obj:FindFirstChild("Attachment")
+                        if att then prompt = att:FindFirstChildOfClass("ProximityPrompt") end
+                    end
+                    table.insert(list, { obj = obj, pos = pos, dist = d, prompt = prompt, inUse = IsPotInUse(obj) })
+                end
+            end
+        end
+    end
+    table.sort(list, function(a, b) return a.dist < b.dist end)
+    return list
+end
+
+local function RefreshPotCache(kitchenPos, radius)
+    PotCache = ScanPotsNear(kitchenPos, radius)
+    PotCacheKitchen = kitchenPos
+    PotCacheTime = os.clock()
+    return PotCache
+end
+
+local function GetAvailablePot(kitchenPos, radius)
+    radius = radius or 15
+    if not PotCacheKitchen or PotCacheKitchen ~= kitchenPos or #PotCache == 0 or (os.clock() - PotCacheTime) > 5 then
+        RefreshPotCache(kitchenPos, radius)
+    end
+    local function pickFree()
+        for _, entry in ipairs(PotCache) do
+            local pot = entry.obj
+            if pot and pot.Parent and not IsPotInUse(pot) then
+                local prompt = entry.prompt
+                if not prompt or not prompt.Parent then
+                    prompt = pot:FindFirstChildWhichIsA("ProximityPrompt", true)
+                    if not prompt then
+                        local att = pot:FindFirstChild("Attachment")
+                        if att then prompt = att:FindFirstChildOfClass("ProximityPrompt") end
+                    end
+                    entry.prompt = prompt
+                end
+                if prompt and prompt.Parent then entry.inUse = false; return pot, prompt end
+            end
+        end
+        return nil, nil
+    end
+    local pot, prompt = pickFree()
+    if pot then return pot, prompt end
+    RefreshPotCache(kitchenPos, radius)
+    pot, prompt = pickFree()
+    if pot then return pot, prompt end
+    if #PotCache > 0 and PotCache[1].obj and PotCache[1].obj.Parent then
+        return PotCache[1].obj, PotCache[1].prompt
+    end
+    return nil, nil
+end
+
+local function MarkPotUsed(pot)
+    if not pot then return end
+    for _, entry in ipairs(PotCache) do if entry.obj == pot then entry.inUse = true end end
+end
+
+local function MarkPotFree(pot)
+    if not pot then return end
+    for _, entry in ipairs(PotCache) do if entry.obj == pot then entry.inUse = false end end
+end
+
+local function GetPotAndPrompt(kitchenPos)
+    return GetAvailablePot(kitchenPos, 15)
+end
+
+local function GetPotWorldPos(pot)
+    if not pot or not pot.Parent then return nil end
+    if pot:IsA("BasePart") then return pot.Position end
+    if pot:IsA("Model") then
+        local ok, pivot = pcall(function() return pot:GetPivot() end)
+        if ok and pivot then return pivot.Position end
+    end
+    return nil
+end
+
+local function FirePromptSafe(prompt)
+    if not prompt or not prompt.Parent then return false end
+    if not prompt.Enabled then return false end
+    local orig = RegisterPrompt(prompt)
+    pcall(function()
+        prompt.HoldDuration          = 0
+        prompt.RequiresLineOfSight   = false
+        prompt.MaxActivationDistance = 99999
+    end)
+    local ok1 = pcall(function() fireproximityprompt(prompt) end)
+    if not ok1 then
+        pcall(function()
+            prompt:InputHoldBegin()
+            task.wait(0.08)
+            prompt:InputHoldEnd()
+        end)
+    end
+    if orig then
+        pcall(function()
+            prompt.HoldDuration          = orig.HoldDuration
+            prompt.RequiresLineOfSight   = orig.RequiresLineOfSight
+            prompt.MaxActivationDistance = orig.MaxActivationDistance
+        end)
+    end
+    return true
+end
+
+-- FIND POT LAB
+local _labPotsFolderCache = nil
+local _labPotsFolderTime  = 0
+
+local function GetLabPotsFolder()
+    if _labPotsFolderCache and _labPotsFolderCache.Parent
+       and (os.clock() - _labPotsFolderTime) < 30 then
+        return _labPotsFolderCache
+    end
+    local map = Workspace:FindFirstChild("Map")
+    local locations = map and map:FindFirstChild("Locations")
+    local lab = locations and locations:FindFirstChild("The Laboratory")
+    local p = lab and lab:FindFirstChild("Pots")
+    if not p then
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj.Name == "Pots" and obj:IsA("Folder") then p = obj; break end
+        end
+    end
+    _labPotsFolderCache = p
+    _labPotsFolderTime  = os.clock()
+    return p
+end
+
+local function GetPotPosQuick(pot)
+    if not pot then return nil end
+    if pot:IsA("BasePart") then return pot.Position end
+    if pot:IsA("Model") then
+        local ok, pv = pcall(function() return pot:GetPivot() end)
+        if ok and pv then return pv.Position end
+    end
+    return nil
+end
+
+local function GetPotStandPos(pot, pos)
+    local standPos = pos or GetPotPosQuick(pot)
+    if not standPos then return nil end
+    local cf = nil
+    pcall(function()
+        if pot and pot:IsA("BasePart") then cf = pot.CFrame
+        elseif pot and pot:IsA("Model") then cf = pot:GetPivot() end
+    end)
+    if cf then
+        return standPos - cf.LookVector * 3.5 + cf.RightVector * 1.5 + Vector3.new(0, 0.5, 0)
+    end
+    return standPos + Vector3.new(3.0, 0.5, 3.0)
+end
+
+-- TIMER DETECTION
+local _potTimerCache   = {}
+local _billboardMap    = {}
+local _billboardMapT   = 0
+local _BILLBOARD_TTL   = 2.0
+
+local function _extractTimerNum(lbl)
+    if not lbl or not lbl:IsA("TextLabel") then return nil end
+    local txt = (lbl.Text or ""):gsub("%s", "")
+    if txt == "" then return nil end
+    if txt == "0" then return "0" end
+    if tonumber(txt) then return txt end
+    local num = txt:match("^(%d+)")
+    return num
+end
+
+local function GetGuiWorldPos(gui)
+    if not gui then return nil end
+    local function posOf(obj)
+        if not obj then return nil end
+        if obj:IsA("BasePart") then return obj.Position end
+        if obj:IsA("Attachment") then return obj.WorldPosition end
+        if obj:IsA("Model") then
+            local ok, pv = pcall(function() return obj:GetPivot() end)
+            if ok and pv then return pv.Position end
+        end
+        return nil
+    end
+    local adPos = posOf(gui.Adornee)
+    if adPos then return adPos end
+    local p = gui.Parent
+    local pPos = posOf(p)
+    if pPos then return pPos end
+    if p and p.Parent then
+        local p2 = posOf(p.Parent)
+        if p2 then return p2 end
+        if p:IsA("Attachment") and p.Parent:IsA("BasePart") then return p.Parent.Position end
+    end
+    return nil
+end
+
+local function RefreshBillboardMap()
+    _billboardMap = {}
+    local folder = GetLabPotsFolder()
+    if not folder then return end
+    local candidates = {}
+    for _, d in ipairs(Workspace:GetDescendants()) do
+        local isGui = d:IsA("BillboardGui") or d:IsA("SurfaceGui")
+        if isGui and d.Enabled then
+            local gpos = GetGuiWorldPos(d)
+            if gpos then
+                local lbl
+                for _, l in ipairs(d:GetDescendants()) do
+                    if l:IsA("TextLabel") then
+                        local n = _extractTimerNum(l)
+                        if n then lbl = l; break end
+                    end
+                end
+                if lbl then table.insert(candidates, {pos = gpos, label = lbl}) end
+            end
+        end
+    end
+    for _, pot in ipairs(folder:GetChildren()) do
+        local pPos = GetPotPosQuick(pot)
+        if pPos then
+            local bestLbl, bestD = nil, 20
+            for _, c in ipairs(candidates) do
+                local dd = (c.pos - pPos).Magnitude
+                if dd < bestD then bestD = dd; bestLbl = c.label end
+            end
+            if bestLbl then _billboardMap[pot] = bestLbl end
+        end
+    end
+    _billboardMapT = os.clock()
+end
+
+local function GetPotTimerText(pot)
+    if not pot or not pot.Parent then return nil end
+    local cached = _potTimerCache[pot]
+    if cached and cached.Parent then
+        local t = _extractTimerNum(cached)
+        if t then return t end
+    end
+    local direct = pot:FindFirstChild("Timer")
+    if direct and direct:IsA("TextLabel") then
+        _potTimerCache[pot] = direct
+        local txt = (direct.Text or ""):gsub("%s", "")
+        if txt ~= "" then return txt end
+    end
+    for _, d in ipairs(pot:GetDescendants()) do
+        if d:IsA("TextLabel") and d.Name == "Timer" then
+            _potTimerCache[pot] = d
+            local txt = (d.Text or ""):gsub("%s", "")
+            if txt ~= "" then return txt end
+        end
+    end
+    for _, d in ipairs(pot:GetDescendants()) do
+        if (d:IsA("BillboardGui") or d:IsA("SurfaceGui")) and d.Enabled then
+            for _, lbl in ipairs(d:GetDescendants()) do
+                if lbl:IsA("TextLabel") then
+                    local n = _extractTimerNum(lbl)
+                    if n then _potTimerCache[pot] = lbl; return n end
+                end
+            end
+        end
+    end
+    if (os.clock() - _billboardMapT) > _BILLBOARD_TTL then RefreshBillboardMap() end
+    local mapped = _billboardMap[pot]
+    if mapped and mapped.Parent then
+        local n = _extractTimerNum(mapped)
+        if n then _potTimerCache[pot] = mapped; return n end
+    end
+    return nil
+end
+
+local function IsPotFreeQuick(pot)
+    if not pot or not pot.Parent then return false end
+    local txt = GetPotTimerText(pot)
+    if txt ~= nil and txt ~= "" and txt ~= "0" then return false end
+    for _, attrName in ipairs({ "Cooking", "InUse", "Occupied", "IsCooking", "IsUsed" }) do
+        local ok, val = pcall(function() return pot:GetAttribute(attrName) end)
+        if ok and val == true then return false end
+    end
+    return true
+end
+
+-- LAB POT TRACKER
+_G.SavedLabPots = _G.SavedLabPots or {}
+
+local function SaveLabPotToList(pot, prompt, pos)
+    if not pot or not pos then return end
+    for _, entry in ipairs(_G.SavedLabPots) do
+        if entry.pot == pot then return end
+    end
+    table.insert(_G.SavedLabPots, { pot = pot, prompt = prompt, pos = pos })
+end
+
+local function ClearLabPots()
+    _G.SavedLabPots = {}
+end
+
+local function ClaimPotatoChipsFromAllLabPots()
+    local function HasPotatoChips()
+        local bp = LocalPlayer.Backpack
+        if bp and bp:FindFirstChild("Potato Chips") then return true end
+        local ch = LocalPlayer.Character
+        if ch and ch:FindFirstChild("Potato Chips") then return true end
+        return false
+    end
+
+    if not _G.SavedLabPots or #_G.SavedLabPots == 0 then return false end
+    local gotAny = false
+
+    for idx, entry in ipairs(_G.SavedLabPots) do
+        if getgenv().STOP_ALL then break end
+        local pot = entry.pot
+        local pos = entry.pos
+        if not pot or not pot.Parent then
+            local folder = GetLabPotsFolder()
+            if folder then
+                for _, p in ipairs(folder:GetChildren()) do
+                    local pPos = GetPotPosQuick(p)
+                    if pPos and (pPos - pos).Magnitude < 8 then
+                        pot = p
+                        entry.pot = p
+                        break
+                    end
+                end
+            end
+        end
+        if not pot or not pos then continue end
+        local standPos = GetPotStandPos(pot, pos) or (pos + Vector3.new(3, 0.5, 3))
+        blinkTeleport(standPos, true)
+        task.wait(0.5)
+        fixCamera()
+        task.wait(0.15)
+        local before = countToolByName("Potato Chips")
+        local seen = {}
+        local function firePromptsIn(container)
+            if not container then return end
+            for _, d in ipairs(container:GetDescendants()) do
+                if seen[d] then continue end
+                seen[d] = true
+                if d:IsA("ProximityPrompt") and d.Enabled then
+                    FirePromptSafe(d)
+                    task.wait(0.15)
+                end
+            end
+        end
+        firePromptsIn(pot)
+        if pot.Parent and pot.Parent ~= Workspace then firePromptsIn(pot.Parent) end
+        task.wait(0.4)
+        local after = countToolByName("Potato Chips")
+        if after - before > 0 then gotAny = true end
+    end
+
+    ClearLabPots()
+    return gotAny or HasPotatoChips()
+end
+
+local function ClaimPotatoChipsFromLabPot()
+    return ClaimPotatoChipsFromAllLabPots()
+end
+
+-- ============================================================
+-- BULK BUY
+-- ============================================================
+local function BuyAllMSIngredients()
+    local P, F, W, G, S = ScavengeInventory()
+
+    local guard = 0
+    while countToolByName("Water") < 1 and guard < 80 do
+        if getgenv().STOP_ALL then return false end
+        BuyWater()
+        task.wait(0.28)
+        guard = guard + 1
+    end
+
+    guard = 0
+    while countToolByName("Sugar Block Bag") < 1 and guard < 80 do
+        if getgenv().STOP_ALL then return false end
+        BuySugar()
+        task.wait(0.28)
+        guard = guard + 1
+    end
+
+    guard = 0
+    while countToolByName("Gelatin") < 1 and guard < 80 do
+        if getgenv().STOP_ALL then return false end
+        BuyGelatin()
+        task.wait(0.28)
+        guard = guard + 1
+    end
+
+    return true
+end
+
+-- STEPS
+local function Step1_ClaimAndWater()
+    if not _G.OwnedKitchenPos then
+        if not SetupApartment() then return false end
+        task.wait(0.3)
+    end
+
+    blinkTeleport(LAMONT_POS, true)
+    task.wait(0.7)
+
+    BuyAllMSIngredients()
+    if getgenv().STOP_ALL then return false end
+
+    if not _G.OwnedKitchenPos then return true end
+
+    local Pot, PotPrompt = GetPotAndPrompt(_G.OwnedKitchenPos)
+    if not Pot or not PotPrompt then return false end
+
+    local potPos = GetPotWorldPos(Pot)
+    if not potPos then return false end
+
+    TeleportToKitchen(potPos)
+
+    local Safety = 0
+    repeat
+        if getgenv().STOP_ALL then return false end
+        af_Equip("Water")
+        task.wait(0.6)
+        local char = LocalPlayer.Character
+        local hasWater = char and char:FindFirstChild("Water")
+        if not hasWater then
+            task.wait(0.3)
+            af_Equip("Water")
+            task.wait(0.5)
+        end
+        FirePromptSafe(PotPrompt)
+        task.wait(0.5)
+        af_Unequip()
+        Safety = Safety + 1
+    until countToolByName("Water") == 0 or Safety >= 2
+
+    MarkPotUsed(Pot)
+    return true
+end
+
+local function Step2_LabKentang()
+    task.wait(2)
+    blinkTeleport(DELI_POS, true)
+    task.wait(0.8)
+
+    buyFlour(); task.wait(0.3)
+    buyPotato(); task.wait(0.6)
+    if getgenv().STOP_ALL then return false end
+
+    blinkTeleport(LAB_CLIPBOARD + Vector3.new(0, 0, 2), true)
+    task.wait(0.3)
+    af_FirePromptByName("clipboard", 20)
+    task.wait(0.5)
+    if getgenv().STOP_ALL then return false end
+
+    equipToolByName("potato")
+    blinkTeleport(LAB_CUTTER + Vector3.new(0, 0, 2), true)
+    task.wait(0.4)
+    if not af_FirePromptByName("potato cutter", 25) then
+        if not af_FirePromptByName("campart", 25) then af_FirePromptByName("cutter", 25) end
+    end
+    task.wait(0.5); fixCamera()
+    if getgenv().STOP_ALL then return false end
+    task.wait(1)
+
+    blinkTeleport(LAB_BAG + Vector3.new(0, 0, 2), true)
+    task.wait(0.3)
+    af_FirePromptByName("plastic bag", 20)
+    task.wait(0.5)
+    if getgenv().STOP_ALL then return false end
+
+    task.wait(5)
+
+    blinkTeleport(LAB_UNION + Vector3.new(0, 0, 2), true)
+    task.wait(0.4)
+
+    local flourGuard = 0
+    local MAX_FLOUR_TRIES = 5
+    while countToolByName("flour") > 0 and flourGuard < MAX_FLOUR_TRIES do
+        if getgenv().STOP_ALL then return false end
+        flourGuard = flourGuard + 1
+        equipToolByName("flour")
+        task.wait(0.35)
+        if not af_FirePromptByName("bowls", 25) then
+            if not af_FirePromptByName("union", 25) then
+                af_FirePromptByName("flour", 25)
+            end
+        end
+        local before = countToolByName("flour")
+        local deadline = os.clock() + 2.5
+        while os.clock() < deadline do
+            if getgenv().STOP_ALL then return false end
+            if countToolByName("flour") < before then break end
+            task.wait(0.2)
+        end
+        task.wait(0.25)
+    end
+
+    unequipTools()
+    task.wait(1.0); fixCamera()
+    if getgenv().STOP_ALL then return false end
+
+    pcall(function()
+        if getgenv().UnlockMotorPosition then getgenv().UnlockMotorPosition() end
+    end)
+
+    local function HasCookNotif()
+        local KEYWORDS = {
+            "wait for your product",
+            "finish cooking in the pot",
+            "finish cooking",
+            "cooking in the pot",
+            "your product",
+            "product to finish",
+        }
+        local function stripRichText(s)
+            s = tostring(s or "")
+            s = s:gsub("<[^>]->", "")
+            return s
+        end
+        local function matches(s)
+            if not s then return false end
+            local t = string.lower(stripRichText(s))
+            if t == "" then return false end
+            for _, kw in ipairs(KEYWORDS) do
+                if t:find(kw, 1, true) then return true end
+            end
+            return false
+        end
+        local function scan(container)
+            if not container then return false end
+            local ok, list = pcall(function() return container:GetDescendants() end)
+            if not ok or not list then return false end
+            for _, d in ipairs(list) do
+                local cls = d.ClassName
+                if cls == "TextLabel" or cls == "TextButton" or cls == "TextBox" then
+                    local ok1, txt = pcall(function() return d.Text end)
+                    if ok1 and matches(txt) then return true end
+                    local ok2, ctx = pcall(function() return d.ContentText end)
+                    if ok2 and matches(ctx) then return true end
+                end
+            end
+            return false
+        end
+        if scan(LocalPlayer:FindFirstChild("PlayerGui")) then return true end
+        if scan(game:GetService("CoreGui")) then return true end
+        pcall(function()
+            if typeof(gethui) == "function" then
+                local hidden = gethui()
+                if hidden and scan(hidden) then return true end
+            end
+        end)
+        if scan(Workspace) then return true end
+        return false
+    end
+
+    local function FindAllPotsInWorkspace()
+        local list = {}
+        local seen = {}
+        local myPos = Vector3.zero
+        do
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then myPos = hrp.Position end
+        end
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if seen[obj] then continue end
+            local nm = tostring(obj.Name):lower()
+            local isPot = nm:find("pot", 1, true)
+                       and not nm:find("potato", 1, true)
+                       and not nm:find("potion", 1, true)
+            if isPot and (obj:IsA("BasePart") or obj:IsA("Model")) then
+                local pos = GetPotPosQuick(obj)
+                if pos and (pos - myPos).Magnitude < 500 then
+                    local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+                    if not prompt then
+                        local att = obj:FindFirstChild("Attachment")
+                        if att then prompt = att:FindFirstChildOfClass("ProximityPrompt") end
+                    end
+                    if prompt and prompt.Parent then
+                        seen[obj] = true
+                        table.insert(list, { pot = obj, prompt = prompt, pos = pos })
+                    end
+                end
+            end
+        end
+        table.sort(list, function(a, b)
+            return (a.pos - myPos).Magnitude < (b.pos - myPos).Magnitude
+        end)
+        return list
+    end
+
+    local function CookPotatoUntilNotif()
+        ClearLabPots()
+        local MAX_ROUNDS   = 10
+        local FIRE_PER_POT = 2
+        local POLL_AFTER_FIRE = 3.0
+
+        for round = 1, MAX_ROUNDS do
+            if getgenv().STOP_ALL then return false end
+            local allPots = FindAllPotsInWorkspace()
+            if #allPots == 0 then task.wait(1); continue end
+            for idx, entry in ipairs(allPots) do
+                if getgenv().STOP_ALL then return false end
+                local pot    = entry.pot
+                local prompt = entry.prompt
+                local potPos = entry.pos
+                if not pot or not pot.Parent then continue end
+                local standPos = GetPotStandPos(pot, potPos) or (potPos + Vector3.new(3, 0.5, 3))
+                task.wait(2)
+                blinkTeleport(standPos, true)
+                task.wait(0.3)
+                fixCamera()
+                equipToolByName("potato")
+                task.wait(0.25)
+                local success = false
+                for i = 1, FIRE_PER_POT do
+                    if getgenv().STOP_ALL then break end
+                    FirePromptSafe(prompt)
+                    local deadline = os.clock() + POLL_AFTER_FIRE
+                    while os.clock() < deadline do
+                        if getgenv().STOP_ALL then break end
+                        if HasCookNotif() then success = true; break end
+                        task.wait(0.15)
+                    end
+                    if success then break end
+                end
+                if success then
+                    pcall(SaveLabPotToList, pot, prompt, potPos)
+                    pcall(unequipTools)
+                    pcall(fixCamera)
+                    task.wait(1)
+                    return true
+                else
+                    pcall(unequipTools)
+                    task.wait(0.2)
+                end
+            end
+            task.wait(0.5)
+        end
+        return false
+    end
+
+    local cookOk = CookPotatoUntilNotif()
+    pcall(unequipTools)
+    pcall(fixCamera)
+    task.wait(0.3)
+    pcall(function()
+        if getgenv().LockMotorPosition and _MotorState and _MotorState.bike and _MotorState.bike.Parent then
+            getgenv().LockMotorPosition()
+        end
+    end)
+    return true
+end
+
+local function Step3_FakeIDAndBank()
+    task.wait(3)
+    blinkTeleport(FAKEID_POS, true)
+    task.wait(0.65)
+    local deadline = os.clock() + 11
+    while os.clock() < deadline do
+        if getgenv().STOP_ALL then return false end
+        local folders = Workspace:FindFirstChild("Folders")
+        local npcs = folders and folders:FindFirstChild("NPCs")
+        local seller = npcs and npcs:FindFirstChild("FakeIDSeller")
+        if seller then
+            local prompt = seller:FindFirstChildWhichIsA("ProximityPrompt", true)
+            if prompt then firePromptOnce(prompt) else fireAllNearOnce(FAKEID_POS, 18) end
+        else
+            fireAllNearOnce(FAKEID_POS, 18)
+            task.wait(0.12)
+            fireAllNearOnce(FAKEID_POS, 18)
+        end
+        if LocalPlayer.Backpack:FindFirstChild("Fake ID") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Fake ID")) then
+            task.wait(0.35); break
+        end
+        task.wait(0.35)
+    end
+
+    blinkTeleport(BANK_POS + Vector3.new(0, 0, 2), true)
+    task.wait(0.35); fixCamera()
+
+    equipToolByName("fake id")
+    task.wait(0.4)
+    local folders = Workspace:FindFirstChild("Folders")
+    local npcs = folders and folders:FindFirstChild("NPCs")
+    local teller = npcs and npcs:FindFirstChild("Bank Teller")
+    if teller then
+        local prompt = teller:FindFirstChildWhichIsA("ProximityPrompt", true)
+        if prompt then firePromptOnce(prompt) else fireAllNearOnce(BANK_POS, 18) end
+    else
+        fireAllNearOnce(BANK_POS, 18)
+    end
+    local _, hum = GetLiveCharacter(2)
+    if hum then
+        local old = hum.Health
+        hum.Health = 70; task.wait(0.08); hum.Health = old
+    end
+    unequipTools()
+    task.wait(0.3)
+    return true
+end
+
+local function Step4_MS_Finish()
+    if not _G.OwnedKitchenPos then return false end
+
+    local P, F, W, G, S = ScavengeInventory()
+    if S < 1 or G < 1 then
+        blinkTeleport(LAMONT_POS, true)
+        task.wait(0.6)
+        BuyAllMSIngredients()
+        if getgenv().STOP_ALL then return false end
+    end
+
+    local Pot, PotPrompt = GetPotAndPrompt(_G.OwnedKitchenPos)
+    if not Pot or not PotPrompt then return false end
+    local potPos = GetPotWorldPos(Pot)
+    if not potPos then return false end
+
+    TeleportToKitchen(potPos)
+    task.wait(0.5)
+    fixCamera()
+
+    local function ensureNearPot(maxDist)
+        maxDist = maxDist or 25
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp and (hrp.Position - potPos).Magnitude <= maxDist then return false end
+        TeleportToKitchen(potPos)
+        task.wait(0.4)
+        fixCamera()
+        return true
+    end
+
+    local function doPotStep(toolName, extraCheck)
+        ensureNearPot()
+        local Safety = 0
+        repeat
+            if getgenv().STOP_ALL then return false end
+            af_Equip(toolName)
+            task.wait(0.6)
+            local char = LocalPlayer.Character
+            local hasTool = char and char:FindFirstChild(toolName)
+            if not hasTool then
+                task.wait(0.3)
+                af_Equip(toolName)
+                task.wait(0.5)
+            end
+            FirePromptSafe(PotPrompt)
+            task.wait(0.5)
+            FirePromptSafe(PotPrompt)
+            task.wait(1)
+            af_Unequip()
+            Safety = Safety + 1
+        until (extraCheck and extraCheck()) or Safety >= 2
+        return true
+    end
+
+    doPotStep("Sugar Block Bag", function()
+        return countToolByName("Sugar Block Bag") == 0 or countToolByName("Empty Bag") > 0
+    end)
+
+    doPotStep("Gelatin", function()
+        return countToolByName("Gelatin") == 0
+    end)
+
+    waitForTimer(Pot, 43, 0.3)
+    ensureNearPot()
+
+    local Safety = 0
+    repeat
+        if getgenv().STOP_ALL then return false end
+        af_Equip("Empty Bag")
+        task.wait(0.6)
+        FirePromptSafe(PotPrompt)
+        task.wait(0.5)
+        af_Unequip()
+        task.wait(0.25)
+        Safety = Safety + 1
+    until countToolByName("Marshmallow Bag") > 0
+        or countToolByName("Small Marshmallow") > 0
+        or countToolByName("Medium Marshmallow") > 0
+        or countToolByName("Large Marshmallow") > 0
+        or Safety >= 8
+
+    MarkPotFree(Pot)
+
+    blinkTeleport(LAMONT_POS, true)
+    task.wait(0.35)
+
+    local lamont = findLamont()
+    if not lamont then return false end
+    local upper = lamont:FindFirstChild("UpperTorso")
+    if not upper then return false end
+
+    local prompt = upper:FindFirstChildWhichIsA("ProximityPrompt")
+    if not prompt then
+        for _, att in pairs(upper:GetChildren()) do
+            if att:IsA("Attachment") then
+                local p = att:FindFirstChildWhichIsA("ProximityPrompt")
+                if p then prompt = p; break end
+            end
+        end
+    end
+    if not prompt then return false end
+
+    RegisterPrompt(prompt)
+    prompt.MaxActivationDistance = 9e9
+    prompt.HoldDuration          = 0
+    prompt.RequiresLineOfSight   = false
+
+    local function sellFrom(parent)
+        if not parent then return end
+        for _, v in pairs(parent:GetChildren()) do
+            if v:IsA("Tool") and string.find(v.Name, "Marshmallow") then
+                local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if hum then hum:EquipTool(v) end
+                task.wait(0.15)
+                FirePromptSafe(prompt)
+                task.wait(0.2)
+                if hum then hum:UnequipTools() end
+                task.wait(0.05)
+                UI.AddStat("Marshmallows Sold", 1)
+            end
+        end
+    end
+
+    sellFrom(LocalPlayer.Backpack)
+    task.wait(0.1)
+    sellFrom(LocalPlayer.Character)
+    cleanCharacterState()
+    return true
+end
+
+local function Step5_GetCardAndSwipe()
+    UI.setStatus("5. Ambil Card")
+    task.wait(1)
+    blinkTeleport(CARD_PROCESS_POS, true)
+    task.wait(0.6)
+    fireAllNearOnce(CARD_PROCESS_POS, 16)
+    task.wait(0.5)
+
+    UI.setStatus("5. Cari ATM")
+    local atm = FindNearestAvailableATM()
+    if not atm then return false end
+    local pos = atm:GetPivot().Position
+    local screenPart = atm:FindFirstChild("ATMScreen")
+    if screenPart and screenPart:IsA("BasePart") then pos = screenPart.Position end
+
+    UI.setStatus("5. Ke ATM")
+    local atmPivot  = atm:GetPivot()
+    local atmCenter = atmPivot.Position
+    local frontDir  = atmPivot.LookVector
+    if screenPart and screenPart:IsA("BasePart") then
+        local diff = screenPart.Position - atmCenter
+        if diff.Magnitude > 0.1 then frontDir = diff.Unit end
+    end
+    local BEHIND_DIST = 3.5
+    local behindPos   = atmCenter - frontDir * BEHIND_DIST
+
+    blinkTeleport(behindPos, true)
+    task.wait(0.35); fixCamera()
+
+    local oldATM = PlayerGui:FindFirstChild("ATM")
+    if oldATM then oldATM:Destroy() end
+    fireAllNearOnce(pos, 11)
+    task.wait(0.3)
+    fireAllNearOnce(pos, 11)
+    task.wait(0.6)
+
+    if PlayerGui:FindFirstChild("ATM") then
+        equipToolByName("card")
+        task.wait(0.25)
+        local atmGui = PlayerGui:FindFirstChild("ATM")
+        if atmGui then
+            local swipe = atmGui:FindFirstChild("Frame") and atmGui.Frame:FindFirstChild("Swipe")
+            if swipe then
+                pcall(function() replicatesignal(swipe.MouseButton1Click) end)
+                UI.AddStat("Cards Swiped", 1)
+                task.wait(0.25)
+                unequipTools()
+                task.wait(0.1)
+                return true
+            end
+        end
+        unequipTools()
+    end
+    unequipTools()
+    return true
+end
+
+local function CountHotChips()
+    local count = 0
+    local function scan(container)
+        if not container then return end
+        for _, ch in ipairs(container:GetChildren()) do
+            if ch:IsA("Tool") and string.find(string.lower(ch.Name), "hot chip", 1, true) then
+                count = count + 1
+            end
+        end
+    end
+    scan(LocalPlayer.Backpack)
+    scan(LocalPlayer.Character)
+    return count
+end
+
+local function Step6_HotChipsAndHomeless()
+    task.wait(1)
+    local function HasHotChips() return CountHotChips() > 0 end
+
+    pcall(function()
+        if getgenv().UnlockMotorPosition then getgenv().UnlockMotorPosition() end
+    end)
+
+    local okChips = ClaimPotatoChipsFromLabPot()
+    fixCamera()
+
+    pcall(function()
+        if getgenv().LockMotorPosition and _MotorState and _MotorState.bike and _MotorState.bike.Parent then
+            getgenv().LockMotorPosition()
+        end
+    end)
+
+    if not okChips or countToolByName("Potato Chips") == 0 then return true end
+
+    equipToolByName("chip")
+    task.wait(0.3)
+
+    local convertSafety = 0
+    repeat
+        if getgenv().STOP_ALL then return false end
+        blinkTeleport(POORGUY_POS + Vector3.new(0, 0, 2), true)
+        task.wait(0.35)
+        if not af_FirePromptByName("poor guy", 20) then af_FirePromptByName("poor", 20) end
+        task.wait(0.5)
+        convertSafety = convertSafety + 1
+    until countToolByName("Hot Chips") > 0
+        or countToolByName("Potato Chips") == 0
+        or convertSafety >= 15
+
+    unequipTools()
+    fixCamera()
+
+    if countToolByName("Hot Chips") == 0 then return true end
+
+    local function FeedOneHomelessByCoord(entry)
+        local npcName = entry.Name
+        local npcPos  = entry.Pos
+        if not npcPos then return false end
+
+        local function FindHomelessModelByName(name)
+            local homelessFolder = Workspace:FindFirstChild("Folders")
+                and Workspace.Folders:FindFirstChild("HomelessPeople")
+            if homelessFolder then
+                local m = homelessFolder:FindFirstChild(name)
+                if m and m:IsA("Model") then return m end
+            end
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj.Name == name then return obj end
+            end
+            return nil
+        end
+
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return false end
+
+        local hotChips = (LocalPlayer.Backpack and LocalPlayer.Backpack:FindFirstChild("Hot Chips"))
+            or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Hot Chips"))
+        if hotChips then
+            pcall(function() hum:EquipTool(hotChips) end)
+        else
+            return false
+        end
+        task.wait(0.35)
+
+        local targetPos = npcPos + Vector3.new(0, 3.5, 2)
+        blinkTeleport(targetPos, true)
+        task.wait(0.35)
+        fixCamera()
+
+        local success = false
+        local npc = FindHomelessModelByName(npcName)
+        if npc then
+            local upper = npc:FindFirstChild("UpperTorso")
+            local prompt = upper and upper:FindFirstChildWhichIsA("ProximityPrompt", true)
+            if not prompt then
+                for _, ch in ipairs(npc:GetDescendants()) do
+                    if ch:IsA("ProximityPrompt") and ch.Enabled then
+                        prompt = ch
+                        break
+                    end
+                end
+            end
+            if prompt then
+                success = FirePromptSafe(prompt)
+                if not success then af_FirePrompt(prompt); success = true end
+            end
+        end
+        if not success then success = fireAllNearOnce(npcPos, 12) end
+        if not success then success = af_FirePromptByName(npcName, 25) end
+        task.wait(0.5)
+        unequipTools()
+        return success
+    end
+
+    local MaxRetries = 3
+    local retry = 0
+    while HasHotChips() and retry < MaxRetries and not getgenv().STOP_ALL do
+        retry = retry + 1
+        for i, entry in ipairs(HOMELESS_LIST) do
+            if not HasHotChips() then break end
+            if getgenv().STOP_ALL then break end
+            local beforeChips = CountHotChips()
+            FeedOneHomelessByCoord(entry)
+            task.wait(0.4)
+            local afterChips = CountHotChips()
+            local consumed = beforeChips - afterChips
+            if consumed > 0 then UI.AddStat("Chips Fed", consumed) end
+            task.wait(0.3)
+        end
+        if HasHotChips() then task.wait(1.5) end
+    end
+
+    pcall(function()
+        local atmGui = PlayerGui:FindFirstChild("ATM")
+        if atmGui then atmGui:Destroy() end
+    end)
+    return true
+end
+
+-- RUN CYCLE
+local function runCycle()
+    ClearLabPots()
+    pcall(RefreshBillboardMap)
+
+    if not Step1_ClaimAndWater() or getgenv().STOP_ALL then return false end
+    if not Step3_FakeIDAndBank() or getgenv().STOP_ALL then return false end
+    if not Step2_LabKentang() or getgenv().STOP_ALL then return false end
+    if not Step4_MS_Finish() or getgenv().STOP_ALL then return false end
+    if not Step5_GetCardAndSwipe() or getgenv().STOP_ALL then return false end
+    if not Step6_HotChipsAndHomeless() or getgenv().STOP_ALL then return false end
+
+    getgenv().CYCLE_COUNT = getgenv().CYCLE_COUNT + 1
+    task.wait(1.2)
+    return true
+end
+
+getgenv().MF_Start = function()
+    if getgenv().RUNNING then return end
+    getgenv().FarmStartTime = os.clock()
+    getgenv().STOP_ALL = false
+    getgenv().RUNNING = true
+    getgenv().CYCLE_COUNT = 0
+    task.spawn(function()
+        while not getgenv().STOP_ALL do
+            local ok, err = pcall(runCycle)
+            if not ok then task.wait(2) end
+            if getgenv().STOP_ALL then break end
+        end
+        getgenv().RUNNING = false
+        pcall(stopLockMode)
+    end)
+end
+
+getgenv().MF_Stop = function()
+    getgenv().STOP_ALL = true
+    getgenv().FarmStartTime = nil
+    pcall(stopLockMode)
+    pcall(StopAutoDrive)
+    pcall(stopGhostMode)
+    pcall(stopGhostModeFully)
+    pcall(UnlockMotorPosition)
+    pcall(function()
+        if getgenv().ResetMotorLockedRotation then getgenv().ResetMotorLockedRotation() end
+    end)
+    pcall(RestoreAllPrompts)
+    pcall(function() Workspace.Gravity = originalGravity end)
+    _BLINK_NOCLIP_ALL = false
+    pcall(function()
+        LocalPlayer.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Zoom
+    end)
+    -- Reset spawn motor cooldown
+    pcall(function()
+        if getgenv().ResetSpawnMotorCooldown then getgenv().ResetSpawnMotorCooldown() end
+    end)
+end
+
+end)()
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(2)
+    pcall(function() Workspace.Gravity = originalGravity end)
+    _BLINK_NOCLIP_ALL = false
+    pcall(function()
+        LocalPlayer.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Zoom
+    end)
+    pcall(function()
+        if getgenv().LockMotorPosition then
+            task.wait(1)
+            getgenv().LockMotorPosition()
+        end
+    end)
+end)
+
+print("✅ JOSTAR STORE Multifarm loaded")
+
+pcall(function()
+    LocalPlayer.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
+end)
+
+-- ============================================================
+-- AUTO START FARM SETELAH REJOIN
+-- ============================================================
+task.spawn(function()
+    task.wait(6)
+    if getgenv().MF_AUTO_START then
+        getgenv().MF_AUTO_START = false
+        task.wait(3)
+        if getgenv().MF_Start and not getgenv().RUNNING then
+            getgenv().MF_Start()
+        end
+    end
+end)
+
+-- ANTI-AFK
+task.spawn(function()
+    pcall(function()
+        if getconnections then
+            for _, conn in ipairs(getconnections(LocalPlayer.Idled)) do
+                if conn.Disable then conn:Disable()
+                elseif conn.Disconnect then conn:Disconnect() end
+            end
+        else
+            local vim = game:GetService("VirtualInputManager")
+            LocalPlayer.Idled:Connect(function()
+                vim:SendKeyEvent(true, Enum.KeyCode.F15, false, game)
+                task.wait(0.05)
+                vim:SendKeyEvent(false, Enum.KeyCode.F15, false, game)
+            end)
+        end
+    end)
+end)
