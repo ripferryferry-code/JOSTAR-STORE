@@ -1,0 +1,327 @@
+-- ============================================================
+-- 🛒 RP STORE — FPS Optimizer (One Button)
+-- ============================================================
+
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = (gethui and gethui()) or game:GetService("CoreGui")
+
+-- =====================
+-- STATE
+-- =====================
+local originalData = {
+    parts   = {},
+    decals  = {},
+    terrain = {},
+    postEffects = {},
+    lighting = {},
+}
+
+local masterEnabled = false
+
+-- =====================
+-- APPLY FUNCTIONS
+-- =====================
+local function applyAll()
+    -- 1. Remove post effects + lighting tune
+    pcall(function()
+        originalData.lighting = {
+            GlobalShadows = Lighting.GlobalShadows,
+            FogEnd        = Lighting.FogEnd,
+            Brightness    = Lighting.Brightness,
+        }
+        for _, v in ipairs(Lighting:GetChildren()) do
+            if v:IsA("PostEffect") then
+                originalData.postEffects[v] = v.Enabled
+                v.Enabled = false
+            end
+        end
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd        = 9e9
+        Lighting.Brightness    = 2
+    end)
+
+    -- 2. Flat materials on all parts
+    pcall(function()
+        for _, instance in ipairs(workspace:GetDescendants()) do
+            if instance:IsA("BasePart") then
+                if player.Character and instance:IsDescendantOf(player.Character) then continue end
+                if not originalData.parts[instance] then
+                    originalData.parts[instance] = {
+                        Material    = instance.Material,
+                        Reflectance = instance.Reflectance,
+                    }
+                end
+                instance.Material    = Enum.Material.SmoothPlastic
+                instance.Reflectance = 0
+            end
+        end
+    end)
+
+    -- 3. Hide decals & textures
+    pcall(function()
+        for _, instance in ipairs(workspace:GetDescendants()) do
+            if instance:IsA("Texture") or instance:IsA("Decal") then
+                if player.Character and instance:IsDescendantOf(player.Character) then continue end
+                if originalData.decals[instance] == nil then
+                    originalData.decals[instance] = instance.Transparency
+                end
+                instance.Transparency = 1
+            end
+        end
+    end)
+
+    -- 4. Flat terrain water
+    pcall(function()
+        local terrain = workspace:FindFirstChild("Terrain")
+        if terrain then
+            originalData.terrain = {
+                WaterWaveSize       = terrain.WaterWaveSize,
+                WaterWaveSpeed      = terrain.WaterWaveSpeed,
+                WaterReflectance    = terrain.WaterReflectance,
+                WaterTransparency   = terrain.WaterTransparency,
+            }
+            terrain.WaterWaveSize     = 0
+            terrain.WaterWaveSpeed    = 0
+            terrain.WaterReflectance  = 0
+            terrain.WaterTransparency = 1
+        end
+    end)
+
+    -- 5. Render quality low
+    pcall(function()
+        UserSettings().GameSettings.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
+        settings().Rendering.QualityLevel = 1
+    end)
+
+    -- 6. Physics sleep
+    pcall(function()
+        settings().Physics.AllowSleep = true
+    end)
+end
+
+local function revertAll()
+    -- 1. Lighting
+    pcall(function()
+        for v, enabled in pairs(originalData.postEffects) do
+            if v and v.Parent then v.Enabled = enabled end
+        end
+        if originalData.lighting.GlobalShadows ~= nil then
+            Lighting.GlobalShadows = originalData.lighting.GlobalShadows
+            Lighting.FogEnd        = originalData.lighting.FogEnd
+            Lighting.Brightness    = originalData.lighting.Brightness
+        end
+    end)
+
+    -- 2. Materials
+    pcall(function()
+        for instance, data in pairs(originalData.parts) do
+            if instance and instance.Parent then
+                instance.Material    = data.Material
+                instance.Reflectance = data.Reflectance
+            end
+        end
+    end)
+
+    -- 3. Decals
+    pcall(function()
+        for instance, trans in pairs(originalData.decals) do
+            if instance and instance.Parent then
+                instance.Transparency = trans
+            end
+        end
+    end)
+
+    -- 4. Terrain
+    pcall(function()
+        local terrain = workspace:FindFirstChild("Terrain")
+        if terrain and originalData.terrain.WaterWaveSize then
+            terrain.WaterWaveSize     = originalData.terrain.WaterWaveSize
+            terrain.WaterWaveSpeed    = originalData.terrain.WaterWaveSpeed
+            terrain.WaterReflectance  = originalData.terrain.WaterReflectance
+            terrain.WaterTransparency = originalData.terrain.WaterTransparency
+        end
+    end)
+
+    -- 5. Render quality high
+    pcall(function() settings().Rendering.QualityLevel = 21 end)
+    pcall(function() settings().Physics.AllowSleep = false end)
+end
+
+-- =====================
+-- DESCENDANT LISTENER (auto-apply ke part baru)
+-- =====================
+workspace.DescendantAdded:Connect(function(instance)
+    if not masterEnabled then return end
+    if player.Character and instance:IsDescendantOf(player.Character) then return end
+    pcall(function()
+        if instance:IsA("BasePart") then
+            instance.Material    = Enum.Material.SmoothPlastic
+            instance.Reflectance = 0
+        elseif instance:IsA("Texture") or instance:IsA("Decal") then
+            instance.Transparency = 1
+        end
+    end)
+end)
+
+-- =====================
+-- UI
+-- =====================
+local C = {
+    BG         = Color3.fromRGB(75, 0, 130), -- Warna dasar gelap
+    TitleBar   = Color3.fromRGB(30, 60, 140),
+    Border     = Color3.fromRGB(60, 100, 200),
+    TextPri    = Color3.fromRGB(220, 235, 255),
+    TextMut    = Color3.fromRGB(120, 140, 180),
+    BtnOff     = Color3.fromRGB(25, 40, 80),
+    BtnOffTxt  = Color3.fromRGB(140, 180, 255),
+    BtnOn      = Color3.fromRGB(50, 110, 220),
+    BtnOnTxt   = Color3.fromRGB(230, 240, 255),
+    Green      = Color3.fromRGB(80, 220, 130),
+}
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name           = "Ramsstore_FPS"
+screenGui.ResetOnSpawn   = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.DisplayOrder   = 999
+
+local parented = false
+pcall(function() screenGui.Parent = game:GetService("CoreGui") parented = true end)
+if not parented then pcall(function() screenGui.Parent = gethui() parented = true end) end
+if not parented then screenGui.Parent = player.PlayerGui end
+
+-- Main window
+local Main = Instance.new("Frame")
+Main.Size             = UDim2.new(0, 200, 0, 90)
+Main.Position         = UDim2.new(0.5, 0, 0.5, 0)
+Main.AnchorPoint      = Vector2.new(0.5, 0.5)
+Main.BackgroundColor3 = C.BG
+Main.BorderSizePixel  = 0
+Main.Active           = true
+Main.Parent           = screenGui
+
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Color     = C.Border
+Stroke.Thickness = 1
+Stroke.Parent    = Main
+
+-- Header
+local Header = Instance.new("Frame")
+Header.Size             = UDim2.new(1, 0, 0, 34)
+Header.BackgroundColor3 = C.TitleBar
+Header.BorderSizePixel  = 0
+Header.Parent           = Main
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
+
+local HFix = Instance.new("Frame")
+HFix.Size             = UDim2.new(1, 0, 0, 8)
+HFix.Position         = UDim2.new(0, 0, 1, -8)
+HFix.BackgroundColor3 = C.TitleBar
+HFix.BorderSizePixel  = 0
+HFix.Parent           = Header
+
+local Title = Instance.new("TextLabel")
+Title.Size              = UDim2.new(1, -20, 1, 0)
+Title.Position          = UDim2.new(0, 12, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text              = "RP STORE"
+Title.TextColor3        = C.TextPri
+Title.TextSize          = 13
+Title.Font              = Enum.Font.GothamBold
+Title.TextXAlignment    = Enum.TextXAlignment.Left
+Title.Parent            = Header
+
+-- Ikon Bulat Biru (Kanan Atas Header)
+local Icon = Instance.new("ImageLabel")
+Icon.Size = UDim2.new(0, 18, 0, 18)
+Icon.Position = UDim2.new(1, -22, 0.5, -9)
+Icon.BackgroundTransparency = 1
+Icon.Image = "rbxassetid://3926305904" -- ID ikon bulat biru
+Icon.ImageColor3 = Color3.fromRGB(75, 0, 30)
+Icon.Parent = Header
+
+-- Status label
+local StatusLbl = Instance.new("TextLabel")
+StatusLbl.Size              = UDim2.new(1, -24, 0, 16)
+StatusLbl.Position          = UDim2.new(0, 12, 0, 42)
+StatusLbl.BackgroundTransparency = 1
+StatusLbl.Text              = "FPS Boost: OFF"
+StatusLbl.TextColor3        = C.TextMut
+StatusLbl.TextSize          = 11
+StatusLbl.Font              = Enum.Font.Gotham
+StatusLbl.TextXAlignment    = Enum.TextXAlignment.Left
+StatusLbl.Parent            = Main
+
+-- Master button (BIG, center-bottom)
+local MasterBtn = Instance.new("TextButton")
+MasterBtn.Size             = UDim2.new(1, -24, 0, 30)
+MasterBtn.Position         = UDim2.new(0, 12, 1, -40)
+MasterBtn.BackgroundColor3 = C.BtnOff
+MasterBtn.Text             = "ACTIVATE"
+MasterBtn.TextColor3       = C.BtnOffTxt
+MasterBtn.TextSize         = 12
+MasterBtn.Font             = Enum.Font.GothamBold
+MasterBtn.BorderSizePixel  = 0
+MasterBtn.AutoButtonColor  = false
+MasterBtn.Parent           = Main
+Instance.new("UICorner", MasterBtn).CornerRadius = UDim.new(0, 6)
+
+-- Drag (dari header)
+local dragging, dragStart, startPos = false, nil, nil
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+    end
+end)
+Header.InputChanged:Connect(function(input)
+    if not dragging then return end
+    if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
+    local d = input.Position - dragStart
+    Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+-- Master toggle logic
+local function toggleMaster()
+    masterEnabled = not masterEnabled
+    local tween = TweenInfo.new(0.2, Enum.EasingStyle.Quad)
+    if masterEnabled then
+        MasterBtn.Text = "DEACTIVATE"
+        TweenService:Create(MasterBtn, tween, {
+            BackgroundColor3 = C.BtnOn,
+            TextColor3       = C.BtnOnTxt,
+        }):Play()
+        StatusLbl.Text       = "FPS Boost: ON"
+        StatusLbl.TextColor3 = C.Green
+        applyAll()
+        print("[RP FPS] ✅ Boost ON")
+    else
+        MasterBtn.Text = "ACTIVATE"
+        TweenService:Create(MasterBtn, tween, {
+            BackgroundColor3 = C.BtnOff,
+            TextColor3       = C.BtnOffTxt,
+        }):Play()
+        StatusLbl.Text       = "FPS Boost: OFF"
+        StatusLbl.TextColor3 = C.TextMut
+        revertAll()
+        print("[RP FPS] ⏹ Boost OFF")
+    end
+end
+
+MasterBtn.MouseButton1Click:Connect(toggleMaster)
+if MasterBtn.TouchTap then MasterBtn.TouchTap:Connect(toggleMaster) end
+
+print("[RP FPS] ✅ Loaded — 1 tombol buat semua")
